@@ -34,16 +34,29 @@ $VENV_PY -m pip install --upgrade pip
 [ -f requirements.txt ] && $VENV_PY -m pip install -r requirements.txt
 [ -f requirements-dev.txt ] && $VENV_PY -m pip install -r requirements-dev.txt
 
-# --- Optional packaging (only when PACKAGE=1) ---
 if [ "${PACKAGE:-0}" = "1" ]; then
   echo "Packaging enabled (PyInstaller)..."
   $VENV_PY -m pip install pyinstaller
-  # Build a single-file GUI app from your entry point
-  $VENV_PY -m PyInstaller \
-    --name "SoleSolutions" \
-    --onefile \
-    --noconsole \
-    src/main.py
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS: create a proper .app (windowed, onedir)
+    $VENV_PY -m PyInstaller \
+      --name "SoleSolutions" \
+      --windowed \
+      --onedir \
+      --osx-bundle-identifier "edu.bsu.cobr.solesolutions" \
+      --noconfirm \
+      src/main.py
+  else
+    # Windows/Linux: keep fast onefile
+    $VENV_PY -m PyInstaller \
+      --name "SoleSolutions" \
+      --onefile \
+      --noconsole \
+      --noconfirm \
+      src/main.py
+  fi
+
   echo "Packaged artifacts are in ./dist/"
 fi
 

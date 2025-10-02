@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, Entry, Label
 import os
 
 def run_ui():
@@ -31,6 +31,11 @@ def run_ui():
         command=import_csv
     )
     import_button.pack(pady=10)
+
+    height_label = Label(root, text='Height:', font=("Arial", 12))
+    height_label.pack(pady=5)
+    height_entry = Entry(root, font=("Arial", 12))
+    height_entry.pack(pady=5)
 
     root.mainloop()
 

@@ -1,5 +1,5 @@
 
-from sole_solutions.ui.app import run_ui
+from src.sole_solutions.ui.app import run_ui
 
 
 def main():

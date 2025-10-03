@@ -1,18 +1,8 @@
-#gaurd to stop tk errors in environments without tkinter
-try:
-    import tkinter as tk
-    from tkinter import filedialog, messagebox, Entry, Label
-    from tkinter import ttk  # if you use ttk
-except Exception:  # ImportError or _tkinter missing, etc.
-    tk = None
-    filedialog = messagebox = Entry = Label = None
-    ttk = None
-
+import tkinter as tk
+from tkinter import filedialog, messagebox, Entry, Label
 import os
 
 def run_ui():
-    if tk is None:
-        raise RuntimeError("Tkinter is not available in this environment.")
     root = tk.Tk()
     root.title("Sole Solutions")
     root.geometry("800x600")

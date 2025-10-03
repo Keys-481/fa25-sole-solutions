@@ -57,6 +57,11 @@ fi
 VENV_VER="$("$VENV_PY" -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 echo "Using venv Python $VENV_VER -> $VENV_PY"
 
+if ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+  echo "Bootstrapping pip in venv..."
+  "$VENV_PY" -m ensurepip --upgrade || true
+fi
+
 # Upgrade pip and install deps
 "$VENV_PY" -m pip install --upgrade pip
 [[ -f requirements.txt ]] && "$VENV_PY" -m pip install -r requirements.txt

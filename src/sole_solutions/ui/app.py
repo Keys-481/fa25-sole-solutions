@@ -1,7 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, Entry, Label
-from tkinter import ttk
-from tkinter import OptionMenu, filedialog, messagebox, Entry, Label
+from tkinter import OptionMenu, filedialog, messagebox, Entry, Label, ttk
 import os
 import csv
 

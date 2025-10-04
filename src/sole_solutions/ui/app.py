@@ -23,7 +23,6 @@ def run_ui():
             return
 
         data = None
-        header = None
 
         # Try multiple encodings
         for enc in ("utf-8-sig", "utf-16", "latin1"):

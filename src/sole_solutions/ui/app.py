@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, Entry, Label
+from tkinter import OptionMenu, filedialog, messagebox, Entry, Label
 import os
 
 def run_ui():
@@ -36,6 +36,10 @@ def run_ui():
     height_label.pack(pady=5)
     height_entry = Entry(root, font=("Arial", 12))
     height_entry.pack(pady=5)
+
+    dominance = ["Left", "Right", "Both"]
+
+    OptionMenu(root, tk.StringVar(value=dominance[0]), *dominance).pack(pady=10)
 
     root.mainloop()
 

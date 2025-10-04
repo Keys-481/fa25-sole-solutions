@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, Entry, Label
 from tkinter import ttk
+from tkinter import OptionMenu, filedialog, messagebox, Entry, Label
 import os
+import csv
 
 def run_ui():
     root = tk.Tk()
@@ -20,8 +22,45 @@ def run_ui():
             return  # user canceled
         if not file_path.lower().endswith(".csv"):
             messagebox.showerror("Invalid File", "Please select a valid .csv file.")
-        else:
-            print(f"CSV file selected: {os.path.basename(file_path)}")
+            return
+
+        data = None
+
+        # Try multiple encodings
+        for enc in ("utf-8-sig", "utf-16", "latin1"):
+            try:
+                with open(file_path, newline="", encoding=enc) as f:
+                    lines = f.readlines()
+                break
+            except UnicodeDecodeError:
+                lines = None
+                continue
+
+        if not lines:
+            messagebox.showerror("Error", "Could not read CSV file with common encodings.")
+            return
+
+        # Find where the real data starts (line beginning with "Frame")
+        start_index = 0
+        for i, line in enumerate(lines):
+            if line.strip().startswith("Frame"):
+                start_index = i
+                break
+
+        if start_index == 0:
+            messagebox.showerror("Error", "No valid data table found in CSV.")
+            return
+
+        # Parse the real data 
+        reader = csv.DictReader(lines[start_index:])
+        data = [row for row in reader]
+
+        # Example output
+        print(f"Parsed {len(data)} valid rows from {os.path.basename(file_path)}")
+        for row in data[:3]:
+            print(row)
+
+        messagebox.showinfo("Success", "CSV imported and parsed successfully!")
 
     import_button = tk.Button(
         root,
@@ -61,6 +100,9 @@ def run_ui():
     gender_combo.current(0)  # default to "Male" selection
     gender_combo.pack(pady=5)
 
+    dominance = ["Left", "Right", "Both"]
+
+    OptionMenu(root, tk.StringVar(value=dominance[0]), *dominance).pack(pady=10)
 
     root.mainloop()
 

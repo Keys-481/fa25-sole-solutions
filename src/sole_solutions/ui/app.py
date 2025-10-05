@@ -98,6 +98,9 @@ def run_ui():
     gender_combo.current(0)  # default to "Male" selection
     gender_combo.pack(pady=5)
 
+    # --- Foot Dominance (Left/Right/Both) ---
+    dominance_label = Label(root, text='Foot Dominance:', font=("Arial", 12))
+    dominance_label.pack(pady=5)
     dominance = ["Left", "Right", "Both"]
 
     OptionMenu(root, tk.StringVar(value=dominance[0]), *dominance).pack(pady=10)

@@ -90,7 +90,7 @@ def run_ui():
     gender_combo = ttk.Combobox(
         root,
         textvariable=gender_var,
-        values=["Male", "Female"],
+        values=["Male", "Female", "Unspecified"],
         state="readonly",
         font=("Arial", 12),
         width=22,

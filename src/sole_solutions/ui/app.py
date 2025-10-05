@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import OptionMenu, filedialog, messagebox, Entry, Label
+from tkinter import OptionMenu, filedialog, messagebox, Entry, Label, ttk
 import os
 import csv
 
@@ -74,6 +74,29 @@ def run_ui():
     height_label.pack(pady=5)
     height_entry = Entry(root, font=("Arial", 12))
     height_entry.pack(pady=5)
+
+
+        # --- Weight (lbs) ---
+    weight_label = Label(root, text='Weight (lbs):', font=("Arial", 12))
+    weight_label.pack(pady=5)
+    weight_entry = Entry(root, font=("Arial", 12))
+    weight_entry.pack(pady=5)
+
+    # --- Gender (Male/Female) ---
+    gender_label = Label(root, text='Gender:', font=("Arial", 12))
+    gender_label.pack(pady=5)
+
+    gender_var = tk.StringVar()
+    gender_combo = ttk.Combobox(
+        root,
+        textvariable=gender_var,
+        values=["Male", "Female", "Unspecified"],
+        state="readonly",
+        font=("Arial", 12),
+        width=22,
+    )
+    gender_combo.current(0)  # default to "Male" selection
+    gender_combo.pack(pady=5)
 
     dominance = ["Left", "Right", "Both"]
 

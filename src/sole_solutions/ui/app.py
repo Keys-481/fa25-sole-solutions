@@ -20,11 +20,11 @@ def run_ui():
     # Participant info
     info_frame = tk.LabelFrame(left_frame, text="Participant Info", bg="#ffffff", padx=10, pady=10)
     info_frame.pack(fill="x", pady=10)
-    tk.Label(info_frame, text="Height (in):").grid(row=0, column=0, sticky="w")
+    tk.Label(info_frame, text="Height (cm):").grid(row=0, column=0, sticky="w")
     height_entry = tk.Entry(info_frame)
     height_entry.grid(row=0, column=1)
 
-    tk.Label(info_frame, text="Weight (lbs):").grid(row=1, column=0, sticky="w")
+    tk.Label(info_frame, text="Weight (kg):").grid(row=1, column=0, sticky="w")
     weight_entry = tk.Entry(info_frame)
     weight_entry.grid(row=1, column=1)
 

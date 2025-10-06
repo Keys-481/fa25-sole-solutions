@@ -1,101 +1,100 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import csv
-import os
-
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 def run_ui():
     root = tk.Tk()
-    root.title("Sole Solutions")
-    root.geometry("900x600")
+    root.title("Sole Solutions: Gait Data Visualizer")
+    root.geometry("1200x700")
     root.configure(bg="#f2f2f2")
 
-    # ===== Title =====
-    title_label = tk.Label(
-        root, 
-        text="Sole Solutions: Gait Data Visualizer",
-        font=("Segoe UI", 20, "bold"),
-        bg="#f2f2f2",
-        fg="#333"
-    )
-    title_label.pack(pady=20)
+    data_storage = []  # store imported CSV
 
-    # ===== Main container =====
-    main_frame = tk.Frame(root, bg="#f2f2f2")
-    main_frame.pack(fill="both", expand=True, padx=40, pady=20)
+    # ===== Left panel: User info + filters =====
+    left_frame = tk.Frame(root, bg="#f2f2f2")
+    left_frame.pack(side="left", fill="y", padx=20, pady=20)
 
-    # ===== Left panel: User Info =====
-    user_frame = tk.LabelFrame(
-        main_frame,
-        text="Participant Information",
-        font=("Segoe UI", 12, "bold"),
-        bg="#ffffff",
-        padx=20,
-        pady=20,
-        relief="groove",
-        borderwidth=2
-    )
-    user_frame.pack(side="left", fill="y", padx=(0, 20), pady=10)
+    # Participant info
+    info_frame = tk.LabelFrame(left_frame, text="Participant Info", bg="#ffffff", padx=10, pady=10)
+    info_frame.pack(fill="x", pady=10)
+    tk.Label(info_frame, text="Height (in):").grid(row=0, column=0, sticky="w")
+    height_entry = tk.Entry(info_frame)
+    height_entry.grid(row=0, column=1)
 
-    # Height
-    tk.Label(user_frame, text="Height (cm):", font=("Segoe UI", 11), bg="#ffffff").grid(row=0, column=0, sticky="w", pady=5)
-    height_entry = tk.Entry(user_frame, font=("Segoe UI", 11), width=20)
-    height_entry.grid(row=0, column=1, pady=5)
+    tk.Label(info_frame, text="Weight (lbs):").grid(row=1, column=0, sticky="w")
+    weight_entry = tk.Entry(info_frame)
+    weight_entry.grid(row=1, column=1)
 
-    # Weight
-    tk.Label(user_frame, text="Weight (kg):", font=("Segoe UI", 11), bg="#ffffff").grid(row=1, column=0, sticky="w", pady=5)
-    weight_entry = tk.Entry(user_frame, font=("Segoe UI", 11), width=20)
-    weight_entry.grid(row=1, column=1, pady=5)
-
-    # Gender
-    tk.Label(user_frame, text="Gender:", font=("Segoe UI", 11), bg="#ffffff").grid(row=2, column=0, sticky="w", pady=5)
-    gender_combo = ttk.Combobox(
-        user_frame,
-        values=["Male", "Female", "Unspecified"],
-        state="readonly",
-        width=17,
-        font=("Segoe UI", 11)
-    )
-    gender_combo.grid(row=2, column=1, pady=5)
+    tk.Label(info_frame, text="Gender:").grid(row=2, column=0, sticky="w")
+    gender_combo = ttk.Combobox(info_frame, values=["Male", "Female", "Unspecified"], state="readonly")
+    gender_combo.grid(row=2, column=1)
     gender_combo.current(0)
 
-    # Foot dominance
-    tk.Label(user_frame, text="Foot Dominance:", font=("Segoe UI", 11), bg="#ffffff").grid(row=3, column=0, sticky="w", pady=5)
-    dominance_combo = ttk.Combobox(
-        user_frame,
-        values=["Left", "Right", "Both"],
-        state="readonly",
-        width=17,
-        font=("Segoe UI", 11)
-    )
-    dominance_combo.grid(row=3, column=1, pady=5)
+    tk.Label(info_frame, text="Foot Dominance:").grid(row=3, column=0, sticky="w")
+    dominance_combo = ttk.Combobox(info_frame, values=["Left", "Right", "Both"], state="readonly")
+    dominance_combo.grid(row=3, column=1)
     dominance_combo.current(0)
 
-    # ===== Right panel: Data Import =====
-    data_frame = tk.LabelFrame(
-        main_frame,
-        text="Data Import",
-        font=("Segoe UI", 12, "bold"),
-        bg="#ffffff",
-        padx=20,
-        pady=20,
-        relief="groove",
-        borderwidth=2
-    )
-    data_frame.pack(side="right", fill="both", expand=True, pady=10)
+    # Filters
+    filter_frame = tk.LabelFrame(left_frame, text="Filters", bg="#ffffff", padx=10, pady=10)
+    filter_frame.pack(fill="x", pady=10)
+
+    tk.Label(filter_frame, text="Select Subject:").grid(row=0, column=0, sticky="w")
+    subject_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
+    subject_combo.grid(row=0, column=1)
+
+    tk.Label(filter_frame, text="Select Trial:").grid(row=1, column=0, sticky="w")
+    trial_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
+    trial_combo.grid(row=1, column=1)
+
+    # ===== Right panel: Table + Visualization =====
+    right_frame = tk.Frame(root, bg="#f2f2f2")
+    right_frame.pack(side="right", fill="both", expand=True, padx=20, pady=20)
+
+    # Table area
+    table_frame = tk.Frame(right_frame)
+    table_frame.pack(fill="both", expand=True, pady=10)
+
+    tree = ttk.Treeview(table_frame, show="headings")
+    tree.pack(side="left", fill="both", expand=True)
+
+    # Scrollbars
+    v_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+    v_scrollbar.pack(side="right", fill="y")
+    tree.configure(yscroll=v_scrollbar.set)
+
+    h_scrollbar = ttk.Scrollbar(right_frame, orient="horizontal", command=tree.xview)
+    h_scrollbar.pack(fill="x")
+    tree.configure(xscrollcommand=h_scrollbar.set)
+
+    # Matplotlib figure for visualization
+    fig, ax = plt.subplots(figsize=(5, 3))
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
+    canvas.get_tk_widget().pack(fill="both", expand=True, pady=20)
+
+    # ===== Functions =====
+    def update_subjects_trials():
+        subjects = sorted(list(set(row["Subject"] for row in data_storage)))
+        subject_combo["values"] = subjects
+        if subjects:
+            subject_combo.current(0)
+            update_trials()
+
+    def update_trials(*args):
+        selected_subject = subject_combo.get()
+        trials = sorted(list(set(row["Trial"] for row in data_storage if row["Subject"] == selected_subject)))
+        trial_combo["values"] = trials
+        if trials:
+            trial_combo.current(0)
+            update_table_and_plot()
 
     def import_csv():
-        file_path = filedialog.askopenfilename(
-            title="Select CSV File",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
+        file_path = filedialog.askopenfilename(title="Select CSV", filetypes=[("CSV files", "*.csv")])
         if not file_path:
             return
-        if not file_path.lower().endswith(".csv"):
-            messagebox.showerror("Invalid File", "Please select a valid .csv file.")
-            return
 
-        # Try multiple encodings
         lines = None
         for enc in ("utf-8-sig", "utf-16", "latin1"):
             try:
@@ -106,57 +105,58 @@ def run_ui():
                 continue
 
         if not lines:
-            messagebox.showerror("Error", "Could not read CSV file with common encodings.")
+            messagebox.showerror("Error", "Cannot read CSV")
             return
 
-        # Find data start
-        start_index = next((i for i, line in enumerate(lines) if line.strip().startswith("Frame")), None)
-        if start_index is None:
-            messagebox.showerror("Error", "No valid data table found in CSV.")
-            return
+        # detect header
+        start_index = 0
+        for i, line in enumerate(lines):
+            if line.strip().startswith("Frame") or line.strip().startswith("Subject"):
+                start_index = i
+                break
 
         reader = csv.DictReader(lines[start_index:])
-        data = [row for row in reader]
+        data_storage.clear()
+        data_storage.extend([row for row in reader])
 
-        messagebox.showinfo(
-            "Import Complete",
-            f"Successfully imported {len(data)} rows from {os.path.basename(file_path)}"
-        )
+        messagebox.showinfo("Import Complete", f"{len(data_storage)} rows imported")
+        update_subjects_trials()
 
-        # Display in table
-        update_table(data)
+    def update_table_and_plot(*args):
+        selected_subject = subject_combo.get()
+        selected_trial = trial_combo.get()
+        filtered = [
+            row for row in data_storage
+            if row["Subject"] == selected_subject and row["Trial"] == selected_trial
+        ]
 
-    def update_table(data):
-        # Clear existing data
-        for row in tree.get_children():
-            tree.delete(row)
-        # Insert new data (limit to first 20 for performance)
-        for i, row in enumerate(data[:20]):
-            tree.insert("", "end", values=list(row.values()))
+        # Update table
+        tree.delete(*tree.get_children())
+        if filtered:
+            tree["columns"] = list(filtered[0].keys())
+            for col in tree["columns"]:
+                tree.heading(col, text=col)
+            for row in filtered[:20]:
+                tree.insert("", "end", values=[row[c] for c in tree["columns"]])
 
-    import_btn = tk.Button(
-        data_frame,
-        text="Import CSV File",
-        font=("Segoe UI", 13, "bold"),
-        bg="#4CAF50",
-        fg="white",
-        activebackground="#45a049",
-        padx=10,
-        pady=5,
-        command=import_csv
-    )
+        # Plot example: PeakPressure_Left vs Time
+        ax.clear()
+        if filtered:
+            times = [float(row["Time"]) for row in filtered]
+            pressures = [float(row["PeakPressure_Left"]) for row in filtered]
+            ax.plot(times, pressures, label="PeakPressure_Left")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Peak Pressure (kPa)")
+            ax.legend()
+        canvas.draw()
+
+    # Bind combobox changes
+    subject_combo.bind("<<ComboboxSelected>>", update_trials)
+    trial_combo.bind("<<ComboboxSelected>>", update_table_and_plot)
+
+    # Buttons
+    import_btn = tk.Button(left_frame, text="Import CSV", bg="#4CAF50", fg="white", command=import_csv)
     import_btn.pack(pady=10)
-
-    # Table area
-    table_frame = tk.Frame(data_frame)
-    table_frame.pack(fill="both", expand=True, pady=10)
-
-    tree = ttk.Treeview(table_frame, show="headings")
-    tree.pack(fill="both", expand=True)
-
-    scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
-    scrollbar.pack(side="right", fill="y")
-    tree.configure(yscroll=scrollbar.set)
 
     root.mainloop()
 

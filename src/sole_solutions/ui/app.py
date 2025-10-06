@@ -7,7 +7,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 def run_ui():
     root = TkinterDnD.Tk() 
-    root.title("Sole Solutions: Gait Data Visualizer")
+    root.title("Sole Solutions: Data Visualizer")
     root.geometry("1200x700")
     root.configure(bg="#f2f2f2")
 

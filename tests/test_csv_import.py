@@ -42,5 +42,5 @@ def test_csv_first_row_data():
         first_row = next(reader)
     # Example checks
     assert first_row["Subject"].startswith("Subject")
-    assert float(first_row["Height_in"]) > 0
-    assert float(first_row["Weight_lbs"]) > 0
+    assert float(first_row["Height_cm"]) > 0
+    assert float(first_row["Weight_kg"]) > 0

@@ -3,9 +3,10 @@ from tkinter import filedialog, messagebox, ttk
 import csv
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 def run_ui():
-    root = tk.Tk()
+    root = TkinterDnD.Tk() 
     root.title("Sole Solutions: Gait Data Visualizer")
     root.geometry("1200x700")
     root.configure(bg="#f2f2f2")
@@ -90,8 +91,9 @@ def run_ui():
             trial_combo.current(0)
             update_table_and_plot()
 
-    def import_csv():
-        file_path = filedialog.askopenfilename(title="Select CSV", filetypes=[("CSV files", "*.csv")])
+    def import_csv(file_path=None):
+        if file_path is None:  # only open file dialog if no path was provided
+            file_path = filedialog.askopenfilename(title="Select CSV", filetypes=[("CSV files", "*.csv")])
         if not file_path:
             return
 
@@ -157,6 +159,28 @@ def run_ui():
     # Buttons
     import_btn = tk.Button(left_frame, text="Import CSV", bg="#4CAF50", fg="white", command=import_csv)
     import_btn.pack(pady=10)
+
+    
+    drop_frame = tk.Label(
+    left_frame,
+    text="Or drag & drop CSV here",
+    bg="#d9edf7",
+    fg="#31708f",
+    relief="ridge",
+    width=25,
+    height=5
+)
+    drop_frame.pack(pady=20)
+
+    # Bind the drop event
+    def drop(event):
+        files = root.splitlist(event.data)  # handles multiple files
+        if files:
+            import_csv(files[0])  # call your existing import_csv function with the path
+
+    drop_frame.drop_target_register(DND_FILES)
+    drop_frame.dnd_bind("<<Drop>>", drop)
+
 
     root.mainloop()
 

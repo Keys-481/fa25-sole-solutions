@@ -42,7 +42,7 @@ def run_ui():
         "weight_lb": 0,
         "gender": "Male",
         "dominance": "Left",
-        "zones": selected_zones
+        "zones": selected_zones,
     }
     # (from File 2)
     current_file: str | None = None
@@ -102,9 +102,9 @@ def run_ui():
     nb.pack(fill="both", expand=True, padx=16, pady=16)
 
     # Tabs order: Data Table (front page), Visualization (blank graph)
-    tab_table  = ttk.Frame(nb)
+    tab_table = ttk.Frame(nb)
     tab_visual = ttk.Frame(nb)
-    nb.add(tab_table,  text="Data Table")
+    nb.add(tab_table, text="Data Table")
     nb.add(tab_visual, text="Visualization")
 
     # =========================================================
@@ -125,7 +125,9 @@ def run_ui():
     import_hint = ttk.Label(
         import_container,
         text="Import CSV (click this card)\n—or—\nDrag & Drop a CSV here",
-        anchor="center", style="Hint.TLabel", justify="center"
+        anchor="center",
+        style="Hint.TLabel",
+        justify="center",
     )
     import_hint.pack(fill="x", padx=12, pady=16)
 
@@ -137,10 +139,12 @@ def run_ui():
 
     if DND_AVAILABLE and DND_FILES:
         import_container.drop_target_register(DND_FILES)
+
         def drop_handler(event):
             files = root.splitlist(event.data)
             if files:
                 import_csv(files[0])
+
         import_container.dnd_bind("<<Drop>>", drop_handler)
 
     # Participant info
@@ -161,25 +165,27 @@ def run_ui():
     zone_canvas = tk.Canvas(zones_frame, width=240, height=150, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
     zone_labels = [
-        ["FF\nMedial",  "FF\nLateral"],
-        ["MF\nMedial",  "MF\nLateral"],
-        ["Heel\nMedial","Heel\nLateral"]
+        ["FF\nMedial", "FF\nLateral"],
+        ["MF\nMedial", "MF\nLateral"],
+        ["Heel\nMedial", "Heel\nLateral"],
     ]
     zone_keys = [
-        ["FF-Medial",  "FF-Lateral"],
-        ["MF-Medial",  "MF-Lateral"],
-        ["Heel-Medial","Heel-Lateral"]
+        ["FF-Medial", "FF-Lateral"],
+        ["MF-Medial", "MF-Lateral"],
+        ["Heel-Medial", "Heel-Lateral"],
     ]
     rect_ids: dict[int, str] = {}
 
     # Validation helpers (integers only)
-    def _only_int(P): return P == "" or P.isdigit()
+    def _only_int(P):
+        return P == "" or P.isdigit()
+
     vcmd = (root.register(_only_int), "%P")
 
     # Height (ft/in)
     tk.Label(info_frame, text="Height:", bg="#ffffff").grid(row=0, column=0, sticky="w", pady=(2, 2))
-    tk.Label(info_frame, text="ft",     bg="#ffffff").grid(row=0, column=2, sticky="w")
-    tk.Label(info_frame, text="in",     bg="#ffffff").grid(row=0, column=4, sticky="w")
+    tk.Label(info_frame, text="ft", bg="#ffffff").grid(row=0, column=2, sticky="w")
+    tk.Label(info_frame, text="in", bg="#ffffff").grid(row=0, column=4, sticky="w")
     height_ft_var = tk.StringVar(value=str(metadata["height_ft"]))
     height_in_var = tk.StringVar(value=str(metadata["height_in"]))
     height_ft_entry = ttk.Entry(info_frame, textvariable=height_ft_var, width=4, validate="key", validatecommand=vcmd)
@@ -189,7 +195,7 @@ def run_ui():
 
     # Weight (lb)
     tk.Label(info_frame, text="Weight:", bg="#ffffff").grid(row=1, column=0, sticky="w", pady=(6, 2))
-    tk.Label(info_frame, text="lb",      bg="#ffffff").grid(row=1, column=2, sticky="w")
+    tk.Label(info_frame, text="lb", bg="#ffffff").grid(row=1, column=2, sticky="w")
     weight_lb_var = tk.StringVar(value=str(metadata["weight_lb"]))
     weight_lb_entry = ttk.Entry(info_frame, textvariable=weight_lb_var, width=6, validate="key", validatecommand=vcmd)
     weight_lb_entry.grid(row=1, column=1, sticky="w", padx=(6, 6))
@@ -197,56 +203,89 @@ def run_ui():
     def _commit_height(_evt=None):
         ft = int(height_ft_var.get()) if height_ft_var.get().isdigit() else metadata["height_ft"]
         inch = int(height_in_var.get()) if height_in_var.get().isdigit() else metadata["height_in"]
-        ft = max(3, min(ft, 8)); inch = max(0, min(inch, 11))
-        metadata["height_ft"] = ft; metadata["height_in"] = inch
-        height_ft_var.set(str(ft)); height_in_var.set(str(inch))
-        _recalc_height_cm(); refresh_info_labels()
+
+        ft = max(3, min(ft, 8))
+        inch = max(0, min(inch, 11))
+
+        metadata["height_ft"] = ft
+        metadata["height_in"] = inch
+
+        height_ft_var.set(str(ft))
+        height_in_var.set(str(inch))
+
+        _recalc_height_cm()
+        refresh_info_labels()
 
     def _commit_weight(_evt=None):
         lb = int(weight_lb_var.get()) if weight_lb_var.get().isdigit() else metadata["weight_lb"]
         lb = max(60, min(lb, 350))
-        metadata["weight_lb"] = lb; weight_lb_var.set(str(lb)); refresh_info_labels()
+
+        metadata["weight_lb"] = lb
+        weight_lb_var.set(str(lb))
+        refresh_info_labels()
 
     for w in (height_ft_entry, height_in_entry):
-        w.bind("<FocusOut>", _commit_height); w.bind("<Return>", _commit_height)
-    weight_lb_entry.bind("<FocusOut>", _commit_weight); weight_lb_entry.bind("<Return>", _commit_weight)
+        w.bind("<FocusOut>", _commit_height)
+        w.bind("<Return>", _commit_height)
+
+    weight_lb_entry.bind("<FocusOut>", _commit_weight)
+    weight_lb_entry.bind("<Return>", _commit_weight)
 
     # Gender / Dominance
     tk.Label(info_frame, text="Gender:", bg="#ffffff").grid(row=2, column=0, sticky="w", pady=(8, 0))
     gender_combo = ttk.Combobox(info_frame, values=["Male", "Female", "Unspecified"], state="readonly", width=16)
-    gender_combo.grid(row=2, column=1, sticky="w", pady=(8, 0)); gender_combo.current(0)
+    gender_combo.grid(row=2, column=1, sticky="w", pady=(8, 0))
+    gender_combo.current(0)
     gender_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("gender", gender_combo.get()))
+
     tk.Label(info_frame, text="Foot Dominance:", bg="#ffffff").grid(row=3, column=0, sticky="w", pady=(6, 0))
     dominance_combo = ttk.Combobox(info_frame, values=["Left", "Right", "Both"], state="readonly", width=16)
-    dominance_combo.grid(row=3, column=1, sticky="w", pady=(6, 0)); dominance_combo.current(0)
+    dominance_combo.grid(row=3, column=1, sticky="w", pady=(6, 0))
+    dominance_combo.current(0)
     dominance_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("dominance", dominance_combo.get()))
 
     def draw_zone_grid():
         zone_canvas.delete("all")
-        w, h = 240, 150; cols, rows = 2, 3; cw, ch = w/cols, h/rows
+
+        w, h = 240, 150
+        cols, rows = 2, 3
+        cw, ch = w / cols, h / rows
+
         for r in range(rows):
             for c in range(cols):
                 key = zone_keys[r][c]
-                x0, y0 = c*cw, r*ch; x1, y1 = x0+cw, y0+ch
+                x0, y0 = c * cw, r * ch
+                x1, y1 = x0 + cw, y0 + ch
                 is_sel = key in selected_zones
                 fill = "#46c081" if is_sel else "#ffffff"
                 outline = "#2c7a57" if is_sel else "#9aa3ab"
                 rid = zone_canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline, width=2)
                 rect_ids[rid] = key
-                zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
-        zone_canvas.create_rectangle(1, 1, w-1, h-1, outline="#9aa3ab", width=1)
+                zone_canvas.create_text((x0 + x1) / 2, (y0 + y1) / 2, text=zone_labels[r][c], font=("Arial", 10))
+
+        zone_canvas.create_rectangle(1, 1, w - 1, h - 1, outline="#9aa3ab", width=1)
 
     def toggle_zone(event):
         item = zone_canvas.find_closest(event.x, event.y)
-        if not item: return
+        if not item:
+            return
+
         rid = item[0]
         if rid not in rect_ids:
             for cand in zone_canvas.find_overlapping(event.x, event.y, event.x, event.y):
-                if cand in rect_ids: rid = cand; break
+                if cand in rect_ids:
+                    rid = cand
+                    break
+
         key = rect_ids.get(rid)
-        if not key: return
-        if key in selected_zones: selected_zones.remove(key)
-        else: selected_zones.add(key)
+        if not key:
+            return
+
+        if key in selected_zones:
+            selected_zones.remove(key)
+        else:
+            selected_zones.add(key)
+
         metadata["zones"] = selected_zones
         draw_zone_grid()
         sel_var.set("Selected: " + (", ".join(sorted(selected_zones)) if selected_zones else "None"))
@@ -301,6 +340,27 @@ def run_ui():
     # =========================================================
     # ====================== Functions ========================
     # =========================================================
+    def _read_csv_lines(file_path: str):
+        """Robust text read with multiple encodings and safe fallbacks."""
+        tried = []
+        for enc in ("utf-8-sig", "utf-16", "utf-16-le", "utf-16-be", "utf-8", "latin1"):
+            try:
+                with open(file_path, mode="r", encoding=enc, newline="") as f:
+                    return f.readlines()
+            except (UnicodeError, UnicodeDecodeError, LookupError):
+                tried.append(enc)
+                continue
+            except Exception:
+                tried.append(enc)
+                continue
+        # Last-resort binary fallback to avoid crashing
+        try:
+            with open(file_path, "rb") as fb:
+                b = fb.read()
+            return b.decode("latin1").splitlines(True)
+        except Exception:
+            return None
+
     def import_csv(file_path=None):
         nonlocal current_file, current_page
         if file_path is None:
@@ -309,16 +369,9 @@ def run_ui():
             return
         current_file = os.path.basename(file_path)
 
-        lines = None
-        for enc in ("utf-8-sig", "utf-16", "latin1"):
-            try:
-                with open(file_path, newline="", encoding=enc) as f:
-                    lines = f.readlines()
-                break
-            except UnicodeDecodeError:
-                continue
+        lines = _read_csv_lines(file_path)
         if not lines:
-            messagebox.showerror("Error", "Cannot read CSV")
+            messagebox.showerror("Error", "Cannot read CSV (unknown encoding).")
             return
 
         # Detect header start
@@ -411,7 +464,10 @@ def run_ui():
 
         chosen = column_combo.get()
         if chosen in (None, "", "All"):
-            cols_to_show = display_columns[:] if display_columns else (list(rows[0].keys()) if rows else [])
+            if display_columns:
+                cols_to_show = display_columns[:]
+            else:
+                cols_to_show = list(rows[0].keys()) if rows else []
         else:
             cols_to_show = [chosen]
 
@@ -434,26 +490,47 @@ def run_ui():
         """Basic plot stub; draws Time vs PeakPressure_Left if present."""
         rows = _all_rows_for_table()
         ax.clear()
-        time_col = "Time"; press_col = "PeakPressure_Left"
+        time_col = "Time"
+        press_col = "PeakPressure_Left"
+
         if rows and time_col in rows[0] and press_col in rows[0]:
             xs, ys = [], []
             for r in rows:
-                t = _safe_float(r.get(time_col)); p = _safe_float(r.get(press_col))
+                t = _safe_float(r.get(time_col))
+                p = _safe_float(r.get(press_col))
                 if t is not None and p is not None and math.isfinite(t) and math.isfinite(p):
-                    xs.append(t); ys.append(p)
+                    xs.append(t)
+                    ys.append(p)
             if xs and ys:
                 ax.plot(xs, ys, label="PeakPressure_Left", linewidth=2, color="#169873")
-                ax.set_facecolor("white"); ax.set_xlabel("Time"); ax.set_ylabel("Peak Pressure (kPa)"); ax.legend()
+                ax.set_facecolor("white")
+                ax.set_xlabel("Time")
+                ax.set_ylabel("Peak Pressure (kPa)")
+                ax.legend()
             else:
                 ax.text(0.5, 0.5, "No numeric data to plot", ha="center", va="center")
         else:
             ax.text(0.5, 0.5, "No plot configured yet", ha="center", va="center")
-        fig.tight_layout(); canvas.draw(); _update_status_peek()
+
+        fig.tight_layout()
+        canvas.draw()
+        _update_status_peek()
 
     # ---- Bindings ----
-    column_combo.bind("<<ComboboxSelected>>",  lambda *_: (set_current_page(0), show_page(0)))
-    prev_btn.configure(command=lambda: show_page(max(current_page - 1, 0)))
-    next_btn.configure(command=lambda: show_page(current_page + 1))
+    def on_column_change(_evt=None):
+        set_current_page(0)
+        show_page(0)
+
+    column_combo.bind("<<ComboboxSelected>>", on_column_change)
+
+    def on_prev():
+        show_page(max(current_page - 1, 0))
+
+    def on_next():
+        show_page(current_page + 1)
+
+    prev_btn.configure(command=on_prev)
+    next_btn.configure(command=on_next)
 
     def set_current_page(val):
         nonlocal current_page

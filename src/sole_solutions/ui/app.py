@@ -20,7 +20,7 @@ def run_ui():
     # Root window (DnD-enabled if available)
     root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
     root.title("Sole Solutions: Data Visualizer")
-    root.geometry("1200x700")
+    root.geometry("1920x1080")
     root.configure(bg="#f2f2f2")
 
     # ---------- Styles ----------
@@ -33,17 +33,22 @@ def run_ui():
     style.configure("Import.TFrame", background="#eef7ff")
 
     # ---------- State ----------
-    data_storage = []           # all imported rows (list of dicts)
-    selected_zones = set()
+    data_storage: list[dict] = []     # all imported rows (list of dicts)
+    selected_zones: set[str] = set()
     metadata = {
-        "height_ft": 5,
-        "height_in": 7,
-        "height_cm": 170.0,   # derived
-        "weight_lb": 150,
+        "height_ft": 0,
+        "height_in": 0,
+        "height_cm": 0.0,   # derived
+        "weight_lb": 0,
         "gender": "Male",
         "dominance": "Left",
         "zones": selected_zones
     }
+    # (from File 2)
+    current_file: str | None = None
+    ROWS_PER_PAGE = 100
+    current_page = 0
+    display_columns: list[str] = []
 
     def _recalc_height_cm():
         total_in = metadata["height_ft"] * 12 + metadata["height_in"]
@@ -64,23 +69,22 @@ def run_ui():
         export_dir = filedialog.askdirectory(title="Select export folder")
         if not export_dir:
             return
-        subj = subject_combo.get() or "subject"
-        trial = trial_combo.get() or "trial"
-        base = f"{subj}_{trial}".replace(" ", "_")
+        base = (current_file or "export").replace(" ", "_")
 
         # table csv
         csv_path = os.path.join(export_dir, f"{base}_table.csv")
         cols = tree["columns"]
         try:
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f); writer.writerow(cols)
+                writer = csv.writer(f)
+                writer.writerow(cols)
                 for iid in tree.get_children():
                     writer.writerow(tree.item(iid, "values"))
         except Exception as e:
             messagebox.showerror("Export Error", f"Failed to write CSV: {e}")
             return
 
-        # plot png
+        # plot png (Visualization tab figure)
         png_path = os.path.join(export_dir, f"{base}_plot.png")
         try:
             fig.savefig(png_path, dpi=150, bbox_inches="tight")
@@ -97,20 +101,25 @@ def run_ui():
     nb = ttk.Notebook(root)
     nb.pack(fill="both", expand=True, padx=16, pady=16)
 
-    tab_import = ttk.Frame(nb)
-    tab_table = ttk.Frame(nb)
+    # Tabs order: Data Table (front page), Visualization (blank graph)
+    tab_table  = ttk.Frame(nb)
     tab_visual = ttk.Frame(nb)
-    nb.add(tab_import, text="Import & Filters")
     nb.add(tab_table,  text="Data Table")
     nb.add(tab_visual, text="Visualization")
 
     # =========================================================
-    # ================ Import & Filters tab ===================
+    # ==================== Data Table tab =====================
     # =========================================================
-    left_frame = tk.Frame(tab_import, bg="#f2f2f2")
-    left_frame.pack(side="left", fill="y", padx=20, pady=20)
+    # Make a two-column layout like File 2 (left controls, right table)
+    tab_table.columnconfigure(0, weight=0)
+    tab_table.columnconfigure(1, weight=1)
+    tab_table.rowconfigure(0, weight=1)
 
-    # ---- Unified Import control (clickable card + drop target) ----
+    # ---- Left column (File 1 controls, no Subject/Trial filters) ----
+    left_frame = tk.Frame(tab_table, bg="#f2f2f2")
+    left_frame.grid(row=0, column=0, sticky="nsw", padx=20, pady=20)
+
+    # Import card (click or DnD)
     import_container = ttk.Frame(left_frame, style="Import.TFrame")
     import_container.pack(fill="x", pady=(0, 12))
     import_hint = ttk.Label(
@@ -134,96 +143,23 @@ def run_ui():
                 import_csv(files[0])
         import_container.dnd_bind("<<Drop>>", drop_handler)
 
-    # ---- Participant info (text fields) ----
+    # Participant info
     info_frame = tk.LabelFrame(left_frame, text="Participant Info", bg="#ffffff", padx=10, pady=10)
     info_frame.pack(fill="x", pady=10)
 
-    # Validation helpers (integers only)
-    def _only_int(P):
-        # Allow empty (user typing), or digits
-        return P == "" or P.isdigit()
-    vcmd = (root.register(_only_int), "%P")
+    # Column Options (Select Column) — from File 2 (replaces Subject/Trial filters)
+    colopts_frame = tk.LabelFrame(left_frame, text="Column Options", bg="#ffffff", padx=10, pady=10)
+    colopts_frame.pack(fill="x", pady=10)
+    tk.Label(colopts_frame, text="Select Column:", bg="#ffffff").grid(row=0, column=0, sticky="w")
+    column_combo = ttk.Combobox(colopts_frame, values=[], state="readonly", width=24)
+    column_combo.grid(row=0, column=1, sticky="ew", padx=(6, 0))
+    column_combo.set("All")
 
-    # Height (ft/in)
-    tk.Label(info_frame, text="Height:", bg="#ffffff").grid(row=0, column=0, sticky="w", pady=(2, 2))
-    tk.Label(info_frame, text="ft", bg="#ffffff").grid(row=0, column=2, sticky="w")
-    tk.Label(info_frame, text="in", bg="#ffffff").grid(row=0, column=4, sticky="w")
-
-    height_ft_var = tk.StringVar(value=str(metadata["height_ft"]))
-    height_in_var = tk.StringVar(value=str(metadata["height_in"]))
-
-    height_ft_entry = ttk.Entry(info_frame, textvariable=height_ft_var, width=4, validate="key", validatecommand=vcmd)
-    height_in_entry = ttk.Entry(info_frame, textvariable=height_in_var, width=4, validate="key", validatecommand=vcmd)
-    height_ft_entry.grid(row=0, column=1, sticky="w", padx=(6, 6))
-    height_in_entry.grid(row=0, column=3, sticky="w", padx=(6, 6))
-
-    # Weight (lb)
-    tk.Label(info_frame, text="Weight:", bg="#ffffff").grid(row=1, column=0, sticky="w", pady=(6, 2))
-    tk.Label(info_frame, text="lb", bg="#ffffff").grid(row=1, column=2, sticky="w")
-
-    weight_lb_var = tk.StringVar(value=str(metadata["weight_lb"]))
-    weight_lb_entry = ttk.Entry(info_frame, textvariable=weight_lb_var, width=6, validate="key", validatecommand=vcmd)
-    weight_lb_entry.grid(row=1, column=1, sticky="w", padx=(6, 6))
-
-    # Live update on focus-out or Return
-    def _commit_height(_evt=None):
-        ft = int(height_ft_var.get()) if height_ft_var.get().isdigit() else metadata["height_ft"]
-        inch = int(height_in_var.get()) if height_in_var.get().isdigit() else metadata["height_in"]
-        # Clamp to sensible ranges
-        ft = max(3, min(ft, 8))
-        inch = max(0, min(inch, 11))
-        metadata["height_ft"] = ft
-        metadata["height_in"] = inch
-        height_ft_var.set(str(ft))
-        height_in_var.set(str(inch))
-        _recalc_height_cm()
-        refresh_info_labels()
-
-    def _commit_weight(_evt=None):
-        lb = int(weight_lb_var.get()) if weight_lb_var.get().isdigit() else metadata["weight_lb"]
-        lb = max(60, min(lb, 350))
-        metadata["weight_lb"] = lb
-        weight_lb_var.set(str(lb))
-        refresh_info_labels()
-
-    for w in (height_ft_entry, height_in_entry):
-        w.bind("<FocusOut>", _commit_height)
-        w.bind("<Return>", _commit_height)
-    weight_lb_entry.bind("<FocusOut>", _commit_weight)
-    weight_lb_entry.bind("<Return>", _commit_weight)
-
-    # Gender / Dominance
-    tk.Label(info_frame, text="Gender:", bg="#ffffff").grid(row=2, column=0, sticky="w", pady=(8, 0))
-    gender_combo = ttk.Combobox(info_frame, values=["Male", "Female", "Unspecified"], state="readonly", width=16)
-    gender_combo.grid(row=2, column=1, sticky="w", pady=(8, 0))
-    gender_combo.current(0)
-    gender_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("gender", gender_combo.get()))
-
-    tk.Label(info_frame, text="Foot Dominance:", bg="#ffffff").grid(row=3, column=0, sticky="w", pady=(6, 0))
-    dominance_combo = ttk.Combobox(info_frame, values=["Left", "Right", "Both"], state="readonly", width=16)
-    dominance_combo.grid(row=3, column=1, sticky="w", pady=(6, 0))
-    dominance_combo.current(0)
-    dominance_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("dominance", dominance_combo.get()))
-
-    # ---- Filters ----
-    filter_frame = tk.LabelFrame(left_frame, text="Filters", bg="#ffffff", padx=10, pady=10)
-    filter_frame.pack(fill="x", pady=10)
-
-    tk.Label(filter_frame, text="Select Subject:", bg="#ffffff").grid(row=0, column=0, sticky="w")
-    subject_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
-    subject_combo.grid(row=0, column=1, sticky="ew")
-
-    tk.Label(filter_frame, text="Select Trial:", bg="#ffffff").grid(row=1, column=0, sticky="w")
-    trial_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
-    trial_combo.grid(row=1, column=1, sticky="ew")
-
-    # ---- Insole Zones (in this tab) ----
+    # Insole Zones
     zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
     zones_frame.pack(fill="x", pady=10)
-
     zone_canvas = tk.Canvas(zones_frame, width=240, height=150, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
-
     zone_labels = [
         ["FF\nMedial",  "FF\nLateral"],
         ["MF\nMedial",  "MF\nLateral"],
@@ -234,18 +170,64 @@ def run_ui():
         ["MF-Medial",  "MF-Lateral"],
         ["Heel-Medial","Heel-Lateral"]
     ]
-    rect_ids = {}
+    rect_ids: dict[int, str] = {}
+
+    # Validation helpers (integers only)
+    def _only_int(P): return P == "" or P.isdigit()
+    vcmd = (root.register(_only_int), "%P")
+
+    # Height (ft/in)
+    tk.Label(info_frame, text="Height:", bg="#ffffff").grid(row=0, column=0, sticky="w", pady=(2, 2))
+    tk.Label(info_frame, text="ft",     bg="#ffffff").grid(row=0, column=2, sticky="w")
+    tk.Label(info_frame, text="in",     bg="#ffffff").grid(row=0, column=4, sticky="w")
+    height_ft_var = tk.StringVar(value=str(metadata["height_ft"]))
+    height_in_var = tk.StringVar(value=str(metadata["height_in"]))
+    height_ft_entry = ttk.Entry(info_frame, textvariable=height_ft_var, width=4, validate="key", validatecommand=vcmd)
+    height_in_entry = ttk.Entry(info_frame, textvariable=height_in_var, width=4, validate="key", validatecommand=vcmd)
+    height_ft_entry.grid(row=0, column=1, sticky="w", padx=(6, 6))
+    height_in_entry.grid(row=0, column=3, sticky="w", padx=(6, 6))
+
+    # Weight (lb)
+    tk.Label(info_frame, text="Weight:", bg="#ffffff").grid(row=1, column=0, sticky="w", pady=(6, 2))
+    tk.Label(info_frame, text="lb",      bg="#ffffff").grid(row=1, column=2, sticky="w")
+    weight_lb_var = tk.StringVar(value=str(metadata["weight_lb"]))
+    weight_lb_entry = ttk.Entry(info_frame, textvariable=weight_lb_var, width=6, validate="key", validatecommand=vcmd)
+    weight_lb_entry.grid(row=1, column=1, sticky="w", padx=(6, 6))
+
+    def _commit_height(_evt=None):
+        ft = int(height_ft_var.get()) if height_ft_var.get().isdigit() else metadata["height_ft"]
+        inch = int(height_in_var.get()) if height_in_var.get().isdigit() else metadata["height_in"]
+        ft = max(3, min(ft, 8)); inch = max(0, min(inch, 11))
+        metadata["height_ft"] = ft; metadata["height_in"] = inch
+        height_ft_var.set(str(ft)); height_in_var.set(str(inch))
+        _recalc_height_cm(); refresh_info_labels()
+
+    def _commit_weight(_evt=None):
+        lb = int(weight_lb_var.get()) if weight_lb_var.get().isdigit() else metadata["weight_lb"]
+        lb = max(60, min(lb, 350))
+        metadata["weight_lb"] = lb; weight_lb_var.set(str(lb)); refresh_info_labels()
+
+    for w in (height_ft_entry, height_in_entry):
+        w.bind("<FocusOut>", _commit_height); w.bind("<Return>", _commit_height)
+    weight_lb_entry.bind("<FocusOut>", _commit_weight); weight_lb_entry.bind("<Return>", _commit_weight)
+
+    # Gender / Dominance
+    tk.Label(info_frame, text="Gender:", bg="#ffffff").grid(row=2, column=0, sticky="w", pady=(8, 0))
+    gender_combo = ttk.Combobox(info_frame, values=["Male", "Female", "Unspecified"], state="readonly", width=16)
+    gender_combo.grid(row=2, column=1, sticky="w", pady=(8, 0)); gender_combo.current(0)
+    gender_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("gender", gender_combo.get()))
+    tk.Label(info_frame, text="Foot Dominance:", bg="#ffffff").grid(row=3, column=0, sticky="w", pady=(6, 0))
+    dominance_combo = ttk.Combobox(info_frame, values=["Left", "Right", "Both"], state="readonly", width=16)
+    dominance_combo.grid(row=3, column=1, sticky="w", pady=(6, 0)); dominance_combo.current(0)
+    dominance_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("dominance", dominance_combo.get()))
 
     def draw_zone_grid():
         zone_canvas.delete("all")
-        w, h = 240, 150
-        cols, rows = 2, 3
-        cw, ch = w/cols, h/rows
+        w, h = 240, 150; cols, rows = 2, 3; cw, ch = w/cols, h/rows
         for r in range(rows):
             for c in range(cols):
                 key = zone_keys[r][c]
-                x0, y0 = c*cw, r*ch
-                x1, y1 = x0+cw, y0+ch
+                x0, y0 = c*cw, r*ch; x1, y1 = x0+cw, y0+ch
                 is_sel = key in selected_zones
                 fill = "#46c081" if is_sel else "#ffffff"
                 outline = "#2c7a57" if is_sel else "#9aa3ab"
@@ -275,75 +257,57 @@ def run_ui():
     ttk.Label(left_frame, textvariable=sel_var, style="Hint.TLabel").pack(anchor="w", padx=4)
     draw_zone_grid()
 
-    # Right side helper text
-    right_import_info = ttk.Frame(tab_import)
-    right_import_info.pack(side="right", fill="both", expand=True, padx=20, pady=20)
-    ttk.Label(
-        right_import_info,
-        text="Click the Import card (or drop a CSV) to load data.\n"
-             "Then use Filters, Zones and switch to Data Table / Visualization.",
-        style="Hint.TLabel", anchor="center", justify="center"
-    ).pack(expand=True)
+    # ---- Right column (File 2 Data Table style) ----
+    right_frame = tk.Frame(tab_table, bg="#f2f2f2")
+    right_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+    right_frame.columnconfigure(0, weight=1)
 
-    # =========================================================
-    # ==================== Data Table tab =====================
-    # =========================================================
-    table_container = tk.Frame(tab_table, bg="#f2f2f2")
-    table_container.pack(fill="both", expand=True, padx=20, pady=20)
+    # Compact, bordered table box
+    table_frame = tk.Frame(right_frame, bg="#ffffff", relief="groove", bd=2)
+    table_frame.grid(row=0, column=0, sticky="ew")
 
-    table_frame = tk.Frame(table_container)
-    table_frame.pack(fill="both", expand=True, pady=10)
-
-    tree = ttk.Treeview(table_frame, show="headings")
-    tree.pack(side="left", fill="both", expand=True)
-
+    tree = ttk.Treeview(table_frame, show="headings", height=12)
+    tree.grid(row=0, column=0, sticky="nsew")
     v_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
-    v_scrollbar.pack(side="right", fill="y")
-    tree.configure(yscroll=v_scrollbar.set)
-
-    h_scrollbar = ttk.Scrollbar(table_container, orient="horizontal", command=tree.xview)
-    h_scrollbar.pack(fill="x")
+    v_scrollbar.grid(row=0, column=1, sticky="ns")
+    tree.configure(yscrollcommand=v_scrollbar.set)
+    h_scrollbar = ttk.Scrollbar(table_frame, orient="horizontal", command=tree.xview)
+    h_scrollbar.grid(row=1, column=0, sticky="ew")
     tree.configure(xscrollcommand=h_scrollbar.set)
+    table_frame.grid_rowconfigure(0, weight=1)
+    table_frame.grid_columnconfigure(0, weight=1)
+
+    # Pagination controls (bottom, with Page label at far right)
+    pagination_frame = tk.Frame(right_frame, bg="#f2f2f2")
+    pagination_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+    prev_btn = ttk.Button(pagination_frame, text="Previous")
+    prev_btn.pack(side="left", padx=5)
+    next_btn = ttk.Button(pagination_frame, text="Next")
+    next_btn.pack(side="left", padx=5)
+    page_label = tk.Label(pagination_frame, text="Page 0 of 0", bg="#f2f2f2")
+    page_label.pack(side="right")
 
     # =========================================================
     # ================== Visualization tab ====================
     # =========================================================
     viz_container = tk.Frame(tab_visual, bg="#f2f2f2")
     viz_container.pack(fill="both", expand=True, padx=20, pady=20)
-
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=(8, 4))
     ax.set_facecolor("white")
     fig.patch.set_facecolor("#f2f2f2")
     canvas = FigureCanvasTkAgg(fig, master=viz_container)
-    canvas.get_tk_widget().pack(fill="both", expand=True, pady=20)
+    canvas.get_tk_widget().pack(fill="both", expand=True)
 
     # =========================================================
     # ====================== Functions ========================
     # =========================================================
-    def update_subjects_trials():
-        subjects = sorted({row.get("Subject", "") for row in data_storage if row.get("Subject", "") != ""})
-        subject_combo["values"] = subjects
-        if subjects:
-            subject_combo.current(0)
-            update_trials()
-        else:
-            subject_combo["values"] = []
-            trial_combo["values"] = []
-            tree.delete(*tree.get_children()); ax.clear(); canvas.draw()
-
-    def update_trials(*_args):
-        selected_subject = subject_combo.get()
-        trials = sorted({row.get("Trial", "") for row in data_storage if row.get("Subject", "") == selected_subject})
-        trial_combo["values"] = [t for t in trials if t != ""]
-        if trial_combo["values"]:
-            trial_combo.current(0); update_table_and_plot()
-        else:
-            trial_combo.set(""); tree.delete(*tree.get_children()); ax.clear(); canvas.draw()
-
     def import_csv(file_path=None):
+        nonlocal current_file, current_page
         if file_path is None:
             file_path = filedialog.askopenfilename(title="Select CSV", filetypes=[("CSV files", "*.csv")])
-        if not file_path: return
+        if not file_path:
+            return
+        current_file = os.path.basename(file_path)
 
         lines = None
         for enc in ("utf-8-sig", "utf-16", "latin1"):
@@ -354,31 +318,40 @@ def run_ui():
             except UnicodeDecodeError:
                 continue
         if not lines:
-            messagebox.showerror("Error", "Cannot read CSV"); return
+            messagebox.showerror("Error", "Cannot read CSV")
+            return
 
         # Detect header start
         start_index = 0
         for i, line in enumerate(lines):
             s = line.strip()
             if s.startswith("Frame") or s.startswith("Subject"):
-                start_index = i; break
+                start_index = i
+                break
 
         reader = csv.DictReader(lines[start_index:])
         data_storage.clear()
         data_storage.extend([row for row in reader])
 
         if not data_storage:
-            messagebox.showwarning("Empty File", "No rows found after header detection."); return
+            messagebox.showwarning("Empty File", "No rows found after header detection.")
+            return
 
-        status_var.set(f"Imported {len(data_storage)} rows from {os.path.basename(file_path)}")
+        update_display_columns()
+        current_page = 0
+
+        status_var.set(f"Imported {len(data_storage)} rows from {current_file}")
         messagebox.showinfo("Import Complete", f"{len(data_storage)} rows imported")
 
-        update_subjects_trials()
-        nb.select(tab_table)
+        nb.select(tab_table)   # show the Data Table front page
+        show_page(0)
+        update_plot()
 
     def _safe_float(s):
-        try: return float(s)
-        except Exception: return None
+        try:
+            return float(s)
+        except Exception:
+            return None
 
     def _update_status_peek():
         status_var.set(
@@ -390,33 +363,81 @@ def run_ui():
         )
 
     def refresh_info_labels():
-        # Keep status fresh after edits
         _recalc_height_cm()
         _update_status_peek()
 
-    def update_table_and_plot(*_args):
-        selected_subject = subject_combo.get()
-        selected_trial = trial_combo.get()
-        filtered = [r for r in data_storage
-                    if r.get("Subject","")==selected_subject and r.get("Trial","")==selected_trial]
+    # ---------- Table helpers (File 2 behavior, adapted) ----------
+    def update_display_columns():
+        """Populate 'column_combo' and choose default visible columns."""
+        display_columns.clear()
+        if not data_storage:
+            column_combo["values"] = ["All"]
+            column_combo.set("All")
+            return
+        cols = list(data_storage[0].keys())
+        # Keep File 2’s heuristic: hide last 341 sensor columns by default.
+        main_cols = cols[:-341] if len(cols) > 341 else cols
+        display_columns.extend(main_cols)
+        column_combo["values"] = ["All"] + display_columns
+        if not column_combo.get():
+            column_combo.set("All")
 
-        # table
+    def _paginate_rows(rows: list[dict]):
+        nonlocal current_page
+        if not rows:
+            current_page = 0
+            return [], 0, 0
+        max_page = max((len(rows) - 1) // ROWS_PER_PAGE, 0)
+        current_page = max(0, min(current_page, max_page))
+        start = current_page * ROWS_PER_PAGE
+        end = start + ROWS_PER_PAGE
+        return rows[start:end], current_page + 1, max_page + 1
+
+    def _all_rows_for_table():
+        """No Subject/Trial filters now—show all imported rows, paginated."""
+        return data_storage
+
+    def show_page(page: int | None = None):
+        """Render the table like File 2, respecting column choice + pagination."""
+        nonlocal current_page
+        if page is not None:
+            current_page = page
+
+        rows = _all_rows_for_table()
+
+        # init columns once data present
+        if rows and not display_columns:
+            update_display_columns()
+
+        chosen = column_combo.get()
+        if chosen in (None, "", "All"):
+            cols_to_show = display_columns[:] if display_columns else (list(rows[0].keys()) if rows else [])
+        else:
+            cols_to_show = [chosen]
+
+        page_rows, page_num, total_pages = _paginate_rows(rows)
+
+        # draw table
         tree.delete(*tree.get_children())
-        if filtered:
-            cols = list(filtered[0].keys())
-            tree["columns"] = cols
-            for col in cols:
-                tree.heading(col, text=col)
-                tree.column(col, width=max(80, min(220, len(col) * 9)))
-            for row in filtered[:500]:
-                tree.insert("", "end", values=[row.get(c, "") for c in cols])
+        tree["columns"] = cols_to_show
+        for col in cols_to_show:
+            tree.heading(col, text=col)
+            tree.column(col, width=80, stretch=False, anchor="center")
 
-        # plot
+        for row in page_rows:
+            tree.insert("", "end", values=[row.get(c, "") for c in cols_to_show])
+
+        page_label.config(text=f"Page {page_num} of {total_pages}")
+
+    # ---------- Plot (Visualization tab — blank/optional for now) ----------
+    def update_plot():
+        """Basic plot stub; draws Time vs PeakPressure_Left if present."""
+        rows = _all_rows_for_table()
         ax.clear()
         time_col = "Time"; press_col = "PeakPressure_Left"
-        if filtered and time_col in filtered[0] and press_col in filtered[0]:
+        if rows and time_col in rows[0] and press_col in rows[0]:
             xs, ys = [], []
-            for r in filtered:
+            for r in rows:
                 t = _safe_float(r.get(time_col)); p = _safe_float(r.get(press_col))
                 if t is not None and p is not None and math.isfinite(t) and math.isfinite(p):
                     xs.append(t); ys.append(p)
@@ -426,14 +447,17 @@ def run_ui():
             else:
                 ax.text(0.5, 0.5, "No numeric data to plot", ha="center", va="center")
         else:
-            ax.text(0.5, 0.5, "Required columns not found:\n'Time' and 'PeakPressure_Left'", ha="center", va="center")
+            ax.text(0.5, 0.5, "No plot configured yet", ha="center", va="center")
+        fig.tight_layout(); canvas.draw(); _update_status_peek()
 
-        fig.tight_layout(); canvas.draw()
-        _update_status_peek()
+    # ---- Bindings ----
+    column_combo.bind("<<ComboboxSelected>>",  lambda *_: (set_current_page(0), show_page(0)))
+    prev_btn.configure(command=lambda: show_page(max(current_page - 1, 0)))
+    next_btn.configure(command=lambda: show_page(current_page + 1))
 
-    # Bindings
-    subject_combo.bind("<<ComboboxSelected>>", update_trials)
-    trial_combo.bind("<<ComboboxSelected>>", update_table_and_plot)
+    def set_current_page(val):
+        nonlocal current_page
+        current_page = val
 
     # init labels
     _recalc_height_cm()

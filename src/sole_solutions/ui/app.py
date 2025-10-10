@@ -230,13 +230,18 @@ def run_ui():
     middle_right = tk.PhotoImage(file='src/sole_solutions/ui/images/middleright.png') # Middle-right foot map
     top_left = tk.PhotoImage(file='src/sole_solutions/ui/images/topleft.png') # Top-left foot map
     top_right = tk.PhotoImage(file='src/sole_solutions/ui/images/topright.png') # Top-right foot map
-    
+
     pic1 = tk.PhotoImage(file='src/sole_solutions/ui/jump.gif')  # Placeholder image
 
     zone_labels = [
         ["FF\nMedial",  "FF\nLateral"],
         ["MF\nMedial",  "MF\nLateral"],
         ["Heel\nMedial","Heel\nLateral"]
+    ]
+    zone_images = [
+        [top_left,    top_right],
+        [middle_left, middle_right],
+        [bottom_left, bottom_right]
     ]
     zone_keys = [
         ["FF-Medial",  "FF-Lateral"],
@@ -261,7 +266,7 @@ def run_ui():
                 rid = zone_canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline, width=2)
                 rect_ids[rid] = key
                 zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
-                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=bottom_left)
+                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=zone_images[r][c])
         zone_canvas.create_rectangle(1, 1, w-1, h-1, outline="#9aa3ab", width=1)
 
     def toggle_zone(event):

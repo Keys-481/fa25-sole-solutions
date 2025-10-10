@@ -224,7 +224,14 @@ def run_ui():
     zone_canvas = tk.Canvas(zones_frame, width=240, height=150, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
 
-    pic1 = tk.PhotoImage(data='jump.gif')
+    bottom_left = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomleft.png') # Bottom-left foot map
+    bottom_right = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomright.png') # Bottom-right foot map
+    middle_left = tk.PhotoImage(file='src/sole_solutions/ui/images/middleleft.png') # Middle-left foot map
+    middle_right = tk.PhotoImage(file='src/sole_solutions/ui/images/middleright.png') # Middle-right foot map
+    top_left = tk.PhotoImage(file='src/sole_solutions/ui/images/topleft.png') # Top-left foot map
+    top_right = tk.PhotoImage(file='src/sole_solutions/ui/images/topright.png') # Top-right foot map
+    
+    pic1 = tk.PhotoImage(file='src/sole_solutions/ui/jump.gif')  # Placeholder image
 
     zone_labels = [
         ["FF\nMedial",  "FF\nLateral"],
@@ -253,8 +260,8 @@ def run_ui():
                 outline = "#2c7a57" if is_sel else "#9aa3ab"
                 rid = zone_canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline, width=2)
                 rect_ids[rid] = key
-                #zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
-                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=pic1)
+                zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
+                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=bottom_left)
         zone_canvas.create_rectangle(1, 1, w-1, h-1, outline="#9aa3ab", width=1)
 
     def toggle_zone(event):

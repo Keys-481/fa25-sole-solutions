@@ -97,6 +97,27 @@ def run_ui():
     page_label = tk.Label(pagination_frame, text="Page 0 of 0", bg="#f2f2f2")
     page_label.pack(side="right")
 
+    # Chart container
+    chart_frame = tk.LabelFrame(
+        right_frame,
+        text="Data Visualization (Chart Placeholder)",
+        bg="#ffffff",
+        padx=10,
+        pady=10,
+        height=300
+    )
+    chart_frame.pack(fill="both", expand=True, pady=15)
+    chart_frame.pack_propagate(False)
+
+    chart_placeholder = tk.Label(
+        chart_frame,
+        text="Chart area (empty)",
+        bg="#ffffff",
+        fg="#999999",
+        font=("Arial", 14)
+    )
+    chart_placeholder.pack(expand=True)
+
     # ===== Functions =====
     def update_columns():
         """Remove last 341 sensor columns and populate combobox."""

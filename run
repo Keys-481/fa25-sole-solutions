@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+
+# Run file that will auto refresh on changes to .py files
+
+# Activate the venv
+if [[ -f ".venv/Scripts/activate" ]]; then
+  source ".venv/Scripts/activate"
+elif [[ -f ".venv/bin/activate" ]]; then
+  source ".venv/bin/activate"
+else
+  echo "No .venv found. Do: py -3.12 -m venv .venv"
+  exit 1
+fi
+
+# Resolve the interpreter path from the active venv
+PY=$(python -c "import sys; print(sys.executable)")
+
+cd ./src
+
+# Ensure watchdog is in THIS interpreter
+"$PY" -m pip show watchdog >/dev/null 2>&1 || "$PY" -m pip install watchdog
+
+# (Optional sanity check — comment out after first run)
+echo "Using Python: $PY"
+"$PY" -c "import sys; print('venv OK:', sys.executable)"
+"$PY" -c "import matplotlib; print('matplotlib OK:', matplotlib.__version__)"
+
+echo "Live reload on. Save any .py to auto-restart. Ctrl+C to stop."
+exec "$PY" -m watchdog.watchmedo auto-restart \
+  --patterns="*.py" \
+  --recursive \
+  -- "$PY" -m main

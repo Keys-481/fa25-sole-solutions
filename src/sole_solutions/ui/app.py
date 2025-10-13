@@ -221,7 +221,7 @@ def run_ui():
     zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
     zones_frame.pack(fill="x", pady=10)
 
-    zone_canvas = tk.Canvas(zones_frame, width=240, height=150, bg="#ffffff", highlightthickness=1, relief="ridge")
+    zone_canvas = tk.Canvas(zones_frame, width=150, height=250, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
 
     bottom_left = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomleft.png') # Bottom-left foot map
@@ -252,7 +252,7 @@ def run_ui():
 
     def draw_zone_grid():
         zone_canvas.delete("all")
-        w, h = 240, 150
+        w, h = 150, 250
         cols, rows = 2, 3
         cw, ch = w/cols, h/rows
         for r in range(rows):
@@ -266,7 +266,7 @@ def run_ui():
                 rid = zone_canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline, width=2)
                 rect_ids[rid] = key
                 zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
-                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=zone_images[r][c])
+                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=zone_images[r][c], anchor="center")
         zone_canvas.create_rectangle(1, 1, w-1, h-1, outline="#9aa3ab", width=1)
 
     def toggle_zone(event):

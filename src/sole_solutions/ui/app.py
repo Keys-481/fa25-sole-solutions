@@ -16,6 +16,7 @@ except Exception:
     DND_AVAILABLE = False
 
 
+
 def run_ui():
     # Root window (DnD-enabled if available)
     root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
@@ -147,7 +148,6 @@ def run_ui():
 
         import_container.dnd_bind("<<Drop>>", drop_handler)
 
-    # Participant info
     info_frame = tk.LabelFrame(left_frame, text="Participant Info", bg="#ffffff", padx=10, pady=10)
     info_frame.pack(fill="x", pady=10)
 
@@ -384,7 +384,7 @@ def run_ui():
 
         reader = csv.DictReader(lines[start_index:])
         data_storage.clear()
-        data_storage.extend([row for row in reader])
+        data_storage.extend(reader)
 
         if not data_storage:
             messagebox.showwarning("Empty File", "No rows found after header detection.")

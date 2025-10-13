@@ -265,8 +265,8 @@ def run_ui():
                 outline = "#2c7a57" if is_sel else "#9aa3ab"
                 rid = zone_canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline, width=2)
                 rect_ids[rid] = key
-                zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
                 zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=zone_images[r][c], anchor="center")
+                zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
         zone_canvas.create_rectangle(1, 1, w-1, h-1, outline="#9aa3ab", width=1)
 
     def toggle_zone(event):

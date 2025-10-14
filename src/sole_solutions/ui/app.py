@@ -159,23 +159,6 @@ def run_ui():
     column_combo.grid(row=0, column=1, sticky="ew", padx=(6, 0))
     column_combo.set("All")
 
-    # Insole Zones
-    zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
-    zones_frame.pack(fill="x", pady=10)
-    zone_canvas = tk.Canvas(zones_frame, width=240, height=150, bg="#ffffff", highlightthickness=1, relief="ridge")
-    zone_canvas.pack()
-    zone_labels = [
-        ["FF\nMedial", "FF\nLateral"],
-        ["MF\nMedial", "MF\nLateral"],
-        ["Heel\nMedial", "Heel\nLateral"],
-    ]
-    zone_keys = [
-        ["FF-Medial", "FF-Lateral"],
-        ["MF-Medial", "MF-Lateral"],
-        ["Heel-Medial", "Heel-Lateral"],
-    ]
-    rect_ids: dict[int, str] = {}
-
     # Validation helpers (integers only)
     def _only_int(P):
         return P == "" or P.isdigit()
@@ -244,10 +227,52 @@ def run_ui():
     dominance_combo.current(0)
     dominance_combo.bind("<<ComboboxSelected>>", lambda *_: metadata.__setitem__("dominance", dominance_combo.get()))
 
+    # ---- Filters ----
+    filter_frame = tk.LabelFrame(left_frame, text="Filters", bg="#ffffff", padx=10, pady=10)
+    filter_frame.pack(fill="x", pady=10)
+
+    tk.Label(filter_frame, text="Select Subject:", bg="#ffffff").grid(row=0, column=0, sticky="w")
+    subject_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
+    subject_combo.grid(row=0, column=1, sticky="ew")
+
+    tk.Label(filter_frame, text="Select Trial:", bg="#ffffff").grid(row=1, column=0, sticky="w")
+    trial_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
+    trial_combo.grid(row=1, column=1, sticky="ew")
+
+    # ---- Insole Zones (in this tab) ----
+    zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
+    zones_frame.pack(fill="x", pady=10)
+
+    zone_canvas = tk.Canvas(zones_frame, width=150, height=250, bg="#ffffff", highlightthickness=1, relief="ridge")
+    zone_canvas.pack()
+
+    bottom_left = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomleft.png') # Bottom-left foot map
+    bottom_right = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomright.png') # Bottom-right foot map
+    middle_left = tk.PhotoImage(file='src/sole_solutions/ui/images/middleleft.png') # Middle-left foot map
+    middle_right = tk.PhotoImage(file='src/sole_solutions/ui/images/middleright.png') # Middle-right foot map
+    top_left = tk.PhotoImage(file='src/sole_solutions/ui/images/topleft.png') # Top-left foot map
+    top_right = tk.PhotoImage(file='src/sole_solutions/ui/images/topright.png') # Top-right foot map
+
+    zone_labels = [
+        ["FF\nMedial",  "FF\nLateral"],
+        ["MF\nMedial",  "MF\nLateral"],
+        ["Heel\nMedial","Heel\nLateral"]
+    ]
+    zone_images = [
+        [top_left,    top_right],
+        [middle_left, middle_right],
+        [bottom_left, bottom_right]
+    ]
+    zone_keys = [
+        ["FF-Medial",  "FF-Lateral"],
+        ["MF-Medial",  "MF-Lateral"],
+        ["Heel-Medial","Heel-Lateral"]
+    ]
+    rect_ids: dict[int, str] = {}
+
     def draw_zone_grid():
         zone_canvas.delete("all")
-
-        w, h = 240, 150
+        w, h = 150, 250
         cols, rows = 2, 3
         cw, ch = w / cols, h / rows
 
@@ -261,9 +286,9 @@ def run_ui():
                 outline = "#2c7a57" if is_sel else "#9aa3ab"
                 rid = zone_canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline, width=2)
                 rect_ids[rid] = key
-                zone_canvas.create_text((x0 + x1) / 2, (y0 + y1) / 2, text=zone_labels[r][c], font=("Arial", 10))
-
-        zone_canvas.create_rectangle(1, 1, w - 1, h - 1, outline="#9aa3ab", width=1)
+                zone_canvas.create_image((x0+x1)/2, (y0+y1)/2, image=zone_images[r][c], anchor="center")
+                zone_canvas.create_text((x0+x1)/2, (y0+y1)/2, text=zone_labels[r][c], font=("Arial", 10))
+        zone_canvas.create_rectangle(1, 1, w-1, h-1, outline="#9aa3ab", width=1)
 
     def toggle_zone(event):
         item = zone_canvas.find_closest(event.x, event.y)

@@ -159,23 +159,6 @@ def run_ui():
     column_combo.grid(row=0, column=1, sticky="ew", padx=(6, 0))
     column_combo.set("All")
 
-    # Insole Zones
-    zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
-    zones_frame.pack(fill="x", pady=10)
-    zone_canvas = tk.Canvas(zones_frame, width=240, height=150, bg="#ffffff", highlightthickness=1, relief="ridge")
-    zone_canvas.pack()
-    zone_labels = [
-        ["FF\nMedial", "FF\nLateral"],
-        ["MF\nMedial", "MF\nLateral"],
-        ["Heel\nMedial", "Heel\nLateral"],
-    ]
-    zone_keys = [
-        ["FF-Medial", "FF-Lateral"],
-        ["MF-Medial", "MF-Lateral"],
-        ["Heel-Medial", "Heel-Lateral"],
-    ]
-    rect_ids: dict[int, str] = {}
-
     # Validation helpers (integers only)
     def _only_int(P):
         return P == "" or P.isdigit()
@@ -270,8 +253,6 @@ def run_ui():
     top_left = tk.PhotoImage(file='src/sole_solutions/ui/images/topleft.png') # Top-left foot map
     top_right = tk.PhotoImage(file='src/sole_solutions/ui/images/topright.png') # Top-right foot map
 
-    pic1 = tk.PhotoImage(file='src/sole_solutions/ui/jump.gif')  # Placeholder image
-
     zone_labels = [
         ["FF\nMedial",  "FF\nLateral"],
         ["MF\nMedial",  "MF\nLateral"],
@@ -287,7 +268,7 @@ def run_ui():
         ["MF-Medial",  "MF-Lateral"],
         ["Heel-Medial","Heel-Lateral"]
     ]
-    rect_ids = {}
+    rect_ids: dict[int, str] = {}
 
     def draw_zone_grid():
         zone_canvas.delete("all")

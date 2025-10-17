@@ -246,12 +246,16 @@ def run_ui():
     zone_canvas = tk.Canvas(zones_frame, width=150, height=250, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
 
-    bottom_left = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomleft.png') # Bottom-left foot map
-    bottom_right = tk.PhotoImage(file='src/sole_solutions/ui/images/bottomright.png') # Bottom-right foot map
-    middle_left = tk.PhotoImage(file='src/sole_solutions/ui/images/middleleft.png') # Middle-left foot map
-    middle_right = tk.PhotoImage(file='src/sole_solutions/ui/images/middleright.png') # Middle-right foot map
-    top_left = tk.PhotoImage(file='src/sole_solutions/ui/images/topleft.png') # Top-left foot map
-    top_right = tk.PhotoImage(file='src/sole_solutions/ui/images/topright.png') # Top-right foot map
+    # Resolve absolute path relative to this file
+    img_dir = os.path.join(os.path.dirname(__file__), "images")
+
+    bottom_left  = tk.PhotoImage(file=os.path.join(img_dir, "bottomleft.png"))
+    bottom_right = tk.PhotoImage(file=os.path.join(img_dir, "bottomright.png"))
+    middle_left  = tk.PhotoImage(file=os.path.join(img_dir, "middleleft.png"))
+    middle_right = tk.PhotoImage(file=os.path.join(img_dir, "middleright.png"))
+    top_left     = tk.PhotoImage(file=os.path.join(img_dir, "topleft.png"))
+    top_right    = tk.PhotoImage(file=os.path.join(img_dir, "topright.png"))
+
 
     zone_labels = [
         ["FF\nMedial",  "FF\nLateral"],
@@ -512,30 +516,51 @@ def run_ui():
 
     # ---------- Plot (Visualization tab — blank/optional for now) ----------
     def update_plot():
-        """Basic plot stub; draws Time vs PeakPressure_Left if present."""
+        """Plot Peak Pressure (Left vs Right) across sample index."""
         rows = _all_rows_for_table()
         ax.clear()
-        time_col = "Time"
-        press_col = "PeakPressure_Left"
+        ax.set_facecolor("white")
+        fig.patch.set_facecolor("#f2f2f2")
 
-        if rows and time_col in rows[0] and press_col in rows[0]:
-            xs, ys = [], []
-            for r in rows:
-                t = _safe_float(r.get(time_col))
-                p = _safe_float(r.get(press_col))
-                if t is not None and p is not None and math.isfinite(t) and math.isfinite(p):
-                    xs.append(t)
-                    ys.append(p)
-            if xs and ys:
-                ax.plot(xs, ys, label="PeakPressure_Left", linewidth=2, color="#169873")
-                ax.set_facecolor("white")
-                ax.set_xlabel("Time")
-                ax.set_ylabel("Peak Pressure (kPa)")
-                ax.legend()
-            else:
-                ax.text(0.5, 0.5, "No numeric data to plot", ha="center", va="center")
+        if not rows:
+            ax.text(0.5, 0.5, "No data loaded", ha="center", va="center")
+            canvas.draw()
+            return
+
+        # Detect column names (case-insensitive)
+        headers = {h.lower(): h for h in rows[0].keys()}
+        insole_col = next((headers[h] for h in headers if "insole" in h), None)
+        pressure_col = next((headers[h] for h in headers if "peak" in h and "pressure" in h), None)
+
+        if not all([insole_col, pressure_col]):
+            ax.text(0.5, 0.5, "Columns 'Insole' and 'Peak Pressure' not found", ha="center", va="center")
+            canvas.draw()
+            return
+
+        # Separate rows by insole side
+        sides = {"Left": [], "Right": []}
+        for r in rows:
+            side = r.get(insole_col, "").strip().capitalize()
+            p = _safe_float(r.get(pressure_col))
+            if side in sides and p is not None and math.isfinite(p):
+                sides[side].append(p)
+
+        # Plot
+        colors = {"Left": "#169873", "Right": "#f06292"}
+        plotted = False
+        for side, pressures in sides.items():
+            if pressures:
+                ax.plot(range(len(pressures)), pressures, label=f"{side} Foot", color=colors[side], linewidth=1.8)
+                plotted = True
+
+        if plotted:
+            ax.set_xlabel("Frame Index")
+            ax.set_ylabel("Peak Pressure (kPa)")
+            ax.legend()
+            ax.grid(True, linestyle="--", alpha=0.4)
+            ax.set_title("Peak Pressure Comparison (Left vs Right Insole)", fontsize=12, weight="bold")
         else:
-            ax.text(0.5, 0.5, "No plot configured yet", ha="center", va="center")
+            ax.text(0.5, 0.5, "No valid Peak Pressure values found", ha="center", va="center")
 
         fig.tight_layout()
         canvas.draw()

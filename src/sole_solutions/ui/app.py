@@ -360,6 +360,22 @@ def run_ui():
     # =========================================================
     viz_container = tk.Frame(tab_visual, bg="#f2f2f2")
     viz_container.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # --- Frame range controls ---
+    range_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    range_frame.pack(fill="x", pady=(0, 10))
+
+    tk.Label(range_frame, text="Frame Range:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
+    frame_start_var = tk.StringVar(value="0")
+    frame_end_var = tk.StringVar(value="")
+
+    ttk.Entry(range_frame, textvariable=frame_start_var, width=8).pack(side="left")
+    tk.Label(range_frame, text="to", bg="#f2f2f2").pack(side="left", padx=4)
+    ttk.Entry(range_frame, textvariable=frame_end_var, width=8).pack(side="left", padx=(0, 6))
+
+    ttk.Button(range_frame, text="Apply", command=lambda: update_plot()).pack(side="left", padx=4)
+
+    # --- Visualization canvas below the controls ---
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.set_facecolor("white")
     fig.patch.set_facecolor("#f2f2f2")
@@ -516,7 +532,7 @@ def run_ui():
 
     # ---------- Plot (Visualization tab — blank/optional for now) ----------
     def update_plot():
-        """Plot Peak Pressure (Left vs Right) across sample index."""
+        """Plot Peak Pressure (Left vs Right) across selected frame range."""
         rows = _all_rows_for_table()
         ax.clear()
         ax.set_facecolor("white")
@@ -529,6 +545,7 @@ def run_ui():
 
         # Detect column names (case-insensitive)
         headers = {h.lower(): h for h in rows[0].keys()}
+        frame_col = next((headers[h] for h in headers if "frame" in h), None)
         insole_col = next((headers[h] for h in headers if "insole" in h), None)
         pressure_col = next((headers[h] for h in headers if "peak" in h and "pressure" in h), None)
 
@@ -537,24 +554,40 @@ def run_ui():
             canvas.draw()
             return
 
-        # Separate rows by insole side
-        sides = {"Left": [], "Right": []}
+        # --- Frame filtering ---
+        start_idx = int(frame_start_var.get()) if frame_start_var.get().isdigit() else 0
+        end_idx = int(frame_end_var.get()) if frame_end_var.get().isdigit() else None
+
+        # Separate by insole side
+        sides = {"Left": {"x": [], "y": []}, "Right": {"x": [], "y": []}}
         for r in rows:
             side = r.get(insole_col, "").strip().capitalize()
             p = _safe_float(r.get(pressure_col))
+            f = _safe_float(r.get(frame_col)) if frame_col else None
             if side in sides and p is not None and math.isfinite(p):
-                sides[side].append(p)
+                xval = f if f is not None else len(sides[side]["x"])
+                sides[side]["x"].append(xval)
+                sides[side]["y"].append(p)
+
+        # Apply range slice
+        for side in sides:
+            if end_idx is not None and end_idx > 0:
+                sides[side]["x"] = sides[side]["x"][start_idx:end_idx]
+                sides[side]["y"] = sides[side]["y"][start_idx:end_idx]
+            else:
+                sides[side]["x"] = sides[side]["x"][start_idx:]
+                sides[side]["y"] = sides[side]["y"][start_idx:]
 
         # Plot
         colors = {"Left": "#169873", "Right": "#f06292"}
         plotted = False
-        for side, pressures in sides.items():
-            if pressures:
-                ax.plot(range(len(pressures)), pressures, label=f"{side} Foot", color=colors[side], linewidth=1.8)
+        for side, data in sides.items():
+            if data["x"]:
+                ax.plot(data["x"], data["y"], label=f"{side} Foot", color=colors[side], linewidth=1.8)
                 plotted = True
 
         if plotted:
-            ax.set_xlabel("Frame Index")
+            ax.set_xlabel("Frame" if frame_col else "Sample Index")
             ax.set_ylabel("Peak Pressure (kPa)")
             ax.legend()
             ax.grid(True, linestyle="--", alpha=0.4)

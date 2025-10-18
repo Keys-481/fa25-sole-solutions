@@ -16,7 +16,14 @@ def peak_pressure(data_storage): # TODO: Takes in the data to find the max press
     # do for each frame
     # 
     # Save the sensor values and the peak pressure associated with the sensors values 
-
+    for "frame" in data_storage:
+        for sensor, pressure in frame.items():
+            sensor_lower = sensor.lower()
+            if sensor_lower not in headers:
+                continue
+            # process pressure value
+            # compare with existing peak value
+            # update if current pressure is higher
 # Pressure–Time Integral (PTI) – cumulative loading over stance.
 def pressure_time_integral(pressure_data, time_data):
 # Contact Area – surface area of the foot in contact with the insole.

@@ -365,6 +365,18 @@ def run_ui():
     range_frame = tk.Frame(viz_container, bg="#f2f2f2")
     range_frame.pack(fill="x", pady=(0, 10))
 
+    # --- Metric toggle ---
+    metric_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    metric_frame.pack(fill="x", pady=(0, 10))
+
+    tk.Label(metric_frame, text="Select Metric:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
+    metric_var = tk.StringVar(value="Peak Pressure")
+    metric_combo = ttk.Combobox(metric_frame, textvariable=metric_var, state="readonly",
+                                values=["Peak Pressure", "Mean Pressure"], width=20)
+    metric_combo.pack(side="left", padx=(4, 6))
+    metric_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
+
+
     tk.Label(range_frame, text="Frame Range:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
     frame_start_var = tk.StringVar(value="0")
     frame_end_var = tk.StringVar(value="")

@@ -24,16 +24,6 @@ def run_ui():
     root.geometry("1920x1080")
     root.configure(bg="#f2f2f2")
 
-    # ---------- Loading Indicator ----------
-    loading_var = tk.StringVar(value="")
-    loading_label = ttk.Label(
-        root,
-        textvariable=loading_var,
-        font=("Arial", 14, "bold"),
-        foreground="#0066cc",
-        background="#f2f2f2"
-    )
-
     # ---------- Styles ----------
     style = ttk.Style()
     if "clam" in style.theme_names():

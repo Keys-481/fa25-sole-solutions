@@ -372,7 +372,7 @@ def run_ui():
     tk.Label(metric_frame, text="Select Metric:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
     metric_var = tk.StringVar(value="Peak Pressure")
     metric_combo = ttk.Combobox(metric_frame, textvariable=metric_var, state="readonly",
-                                values=["Peak Pressure", "Mean Pressure"], width=20)
+                                values=["Peak Pressure", "Contact Area"], width=20)
     metric_combo.pack(side="left", padx=(4, 6))
     metric_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
 
@@ -544,7 +544,7 @@ def run_ui():
 
     # ---------- Plot (Visualization tab — blank/optional for now) ----------
     def update_plot():
-        """Plot Peak Pressure (Left vs Right) across selected frame range."""
+        """Plot either Peak Pressure or Contact Area (Left vs Right) across selected frame range."""
         rows = _all_rows_for_table()
         ax.clear()
         ax.set_facecolor("white")
@@ -555,14 +555,22 @@ def run_ui():
             canvas.draw()
             return
 
-        # Detect column names (case-insensitive)
+        # Detect relevant columns (case-insensitive)
         headers = {h.lower(): h for h in rows[0].keys()}
         frame_col = next((headers[h] for h in headers if "frame" in h), None)
         insole_col = next((headers[h] for h in headers if "insole" in h), None)
-        pressure_col = next((headers[h] for h in headers if "peak" in h and "pressure" in h), None)
+        peak_col = next((headers[h] for h in headers if "peak" in h and "pressure" in h), None)
+        contact_col = next((headers[h] for h in headers if "contact" in h and "area" in h), None)
 
-        if not all([insole_col, pressure_col]):
-            ax.text(0.5, 0.5, "Columns 'Insole' and 'Peak Pressure' not found", ha="center", va="center")
+        # Which metric are we plotting?
+        selected_metric = metric_var.get()
+        if selected_metric == "Contact Area":
+            y_col = contact_col
+        else:
+            y_col = peak_col
+
+        if not all([insole_col, y_col]):
+            ax.text(0.5, 0.5, f"Columns 'Insole' and '{selected_metric}' not found", ha="center", va="center")
             canvas.draw()
             return
 
@@ -574,12 +582,12 @@ def run_ui():
         sides = {"Left": {"x": [], "y": []}, "Right": {"x": [], "y": []}}
         for r in rows:
             side = r.get(insole_col, "").strip().capitalize()
-            p = _safe_float(r.get(pressure_col))
+            y_val = _safe_float(r.get(y_col))
             f = _safe_float(r.get(frame_col)) if frame_col else None
-            if side in sides and p is not None and math.isfinite(p):
+            if side in sides and y_val is not None and math.isfinite(y_val):
                 xval = f if f is not None else len(sides[side]["x"])
                 sides[side]["x"].append(xval)
-                sides[side]["y"].append(p)
+                sides[side]["y"].append(y_val)
 
         # Apply range slice
         for side in sides:
@@ -600,16 +608,18 @@ def run_ui():
 
         if plotted:
             ax.set_xlabel("Frame" if frame_col else "Sample Index")
-            ax.set_ylabel("Peak Pressure (kPa)")
+            ylabel_unit = "kPa" if selected_metric == "Peak Pressure" else "cm²"
+            ax.set_ylabel(f"{selected_metric} ({ylabel_unit})")
             ax.legend()
             ax.grid(True, linestyle="--", alpha=0.4)
-            ax.set_title("Peak Pressure Comparison (Left vs Right Insole)", fontsize=12, weight="bold")
+            ax.set_title(f"{selected_metric} Comparison (Left vs Right Insole)", fontsize=12, weight="bold")
         else:
-            ax.text(0.5, 0.5, "No valid Peak Pressure values found", ha="center", va="center")
+            ax.text(0.5, 0.5, f"No valid {selected_metric} values found", ha="center", va="center")
 
         fig.tight_layout()
         canvas.draw()
         _update_status_peek()
+
 
     # ---- Bindings ----
     def on_column_change(_evt=None):

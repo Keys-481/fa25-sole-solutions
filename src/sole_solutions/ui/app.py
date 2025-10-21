@@ -575,12 +575,20 @@ def run_ui():
 
         insole_col = next((headers[h] for h in headers if "insole" in h), None)
         groups: dict[str, list[float]] = {}
+
         for r in rows[:2000]:
             grp = r.get(insole_col, "global") if insole_col else "global"
-            try:
-                t = float(r.get(time_col))
-            except (TypeError, ValueError):
+
+            val = r.get(time_col)
+            # Only attempt to convert known scalar types
+            if isinstance(val, (int, float, str)):
+                try:
+                    t = float(val)
+                except (TypeError, ValueError):
+                    continue
+            else:
                 continue
+
             groups.setdefault(grp, []).append(t)
 
         deltas: list[float] = []
@@ -595,6 +603,7 @@ def run_ui():
 
         return statistics.median(deltas) if len(deltas) >= 5 else default_dt
 
+
     def infer_threshold_from_column(rows: list[dict], default_thr: float = 20.0) -> float:
         if not rows:
             return default_thr
@@ -605,12 +614,15 @@ def run_ui():
 
         vals: list[float] = []
         for r in rows[:5000]:
-            try:
-                v = float(r.get(thr_col))
-            except (TypeError, ValueError):
-                continue
-            if v >= 0:
-                vals.append(v)
+            raw = r.get(thr_col)
+            if isinstance(raw, (int, float, str)):
+                try:
+                    v = float(raw)
+                except (TypeError, ValueError):
+                    continue
+                if v >= 0:
+                    vals.append(v)
+            # skip non-scalar types silently
 
         return statistics.median(vals) if vals else default_thr
 

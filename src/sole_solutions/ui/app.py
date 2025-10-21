@@ -1,3 +1,9 @@
+from sole_solutions.core.export_manager import (
+    export_summary_docx, export_summary_pdf, export_per_frame_csv
+)
+from sole_solutions.core.session_summary import infer_sensor_keys, compute_session_summary
+from sole_solutions.core.export import write_table_csv, save_plot_png
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import csv
@@ -5,6 +11,8 @@ import os
 import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import re, statistics
+from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
 
 # Drag & drop (graceful fallback if tkinterdnd2 is not present)
 try:
@@ -51,6 +59,11 @@ def run_ui():
     current_page = 0
     display_columns: list[str] = []
 
+    # --- Export/summary state ---
+    last_summary = None      
+    last_base_name = "export"    
+
+
     def _recalc_height_cm():
         total_in = metadata["height_ft"] * 12 + metadata["height_in"]
         metadata["height_cm"] = round(total_in * 2.54, 1)
@@ -63,38 +76,172 @@ def run_ui():
     status_var = tk.StringVar(value="Ready")
     ttk.Label(header, textvariable=status_var, style="Hint.TLabel").pack(side="right", padx=(8, 0))
 
+        # ---- Export selection dialog ----
+    def choose_exports(has_summary: bool):
+        """Return a dict of chosen outputs or None if cancelled."""
+        win = tk.Toplevel(root)
+        win.title("Export Options")
+        win.transient(root)
+        win.grab_set()
+        win.resizable(False, False)
+
+        frm = ttk.Frame(win, padding=12)
+        frm.pack(fill="both", expand=True)
+
+        ttk.Label(frm, text="Select files to export:", font=("Arial", 11, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0,8))
+
+        v_table = tk.BooleanVar(value=True)
+        v_plot  = tk.BooleanVar(value=True)
+        v_pf    = tk.BooleanVar(value=has_summary)
+        v_docx  = tk.BooleanVar(value=False)
+        v_pdf   = tk.BooleanVar(value=False)
+
+        cb_table = ttk.Checkbutton(frm, text="Table CSV", variable=v_table)
+        cb_plot  = ttk.Checkbutton(frm, text="Plot PNG", variable=v_plot)
+        cb_pf    = ttk.Checkbutton(frm, text="Per-frame CSV (avg pressure & vGRF)", variable=v_pf)
+        cb_docx  = ttk.Checkbutton(frm, text="DOCX Report", variable=v_docx)
+        cb_pdf   = ttk.Checkbutton(frm, text="PDF Report", variable=v_pdf)
+
+        cb_table.grid(row=1, column=0, sticky="w")
+        cb_plot.grid(row=2, column=0, sticky="w")
+        cb_pf.grid(row=3, column=0, sticky="w")
+        cb_docx.grid(row=4, column=0, sticky="w")
+        cb_pdf.grid(row=5, column=0, sticky="w")
+
+        if not has_summary:
+            # Disable summary-derived exports when we don't have computed data yet
+            cb_pf.state(["disabled"])
+            cb_docx.state(["disabled"])
+            cb_pdf.state(["disabled"])
+
+        btns = ttk.Frame(frm)
+        btns.grid(row=6, column=0, sticky="e", pady=(10,0))
+        choice = {"ok": False}
+
+        def _ok():
+            choice["ok"] = True
+            win.destroy()
+
+        def _cancel():
+            win.destroy()
+
+        ttk.Button(btns, text="Cancel", command=_cancel).pack(side="right", padx=(0,6))
+        ttk.Button(btns, text="Export", command=_ok).pack(side="right")
+
+        # center over parent
+        win.update_idletasks()
+        x = root.winfo_rootx() + (root.winfo_width() - win.winfo_width()) // 2
+        y = root.winfo_rooty() + (root.winfo_height() - win.winfo_height()) // 2
+        win.geometry(f"+{x}+{y}")
+
+        root.wait_window(win)
+        if not choice["ok"]:
+            return None
+        return {
+            "table": v_table.get(),
+            "plot":  v_plot.get(),
+            "per_frame": v_pf.get() and has_summary,
+            "docx": v_docx.get() and has_summary,
+            "pdf":  v_pdf.get() and has_summary,
+        }
+
+
     def do_export():
-        if not tree.get_children():
-            messagebox.showwarning("Nothing to Export", "No table rows to export yet.")
+        # Ensure there's something in the table to export (for table/plot)
+        if not tree.get_children() and not last_summary:
+            messagebox.showwarning("Nothing to Export", "No data to export yet.")
             return
+
+        # Ask the user what to export
+        choices = choose_exports(has_summary=bool(last_summary))
+        if choices is None:
+            return  # user cancelled
+
+        # If nothing selected, bail nicely
+        if not any(choices.values()):
+            messagebox.showinfo("No Selection", "No export options selected.")
+            return
+
         export_dir = filedialog.askdirectory(title="Select export folder")
         if not export_dir:
             return
-        base = (current_file or "export").replace(" ", "_")
 
-        # table csv
-        csv_path = os.path.join(export_dir, f"{base}_table.csv")
-        cols = tree["columns"]
-        try:
-            with open(csv_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(cols)
-                for iid in tree.get_children():
-                    writer.writerow(tree.item(iid, "values"))
-        except Exception as e:
-            messagebox.showerror("Export Error", f"Failed to write CSV: {e}")
-            return
+        base = (last_base_name if last_summary else (current_file or "export")).replace(" ", "_")
+        saved_paths = []
 
-        # plot png (Visualization tab figure)
-        png_path = os.path.join(export_dir, f"{base}_plot.png")
-        try:
-            fig.savefig(png_path, dpi=150, bbox_inches="tight")
-        except Exception as e:
-            messagebox.showerror("Export Error", f"Failed to save plot: {e}")
-            return
+        # --- Table CSV ---
+        if choices["table"]:
+            if not tree.get_children():
+                messagebox.showwarning("Skip Table CSV", "No table rows to export.")
+            else:
+                try:
+                    cols = list(tree["columns"])
+                    table_rows = []
+                    for iid in tree.get_children():
+                        values = tree.item(iid, "values")
+                        table_rows.append({col: values[idx] if idx < len(values) else "" for idx, col in enumerate(cols)})
+                    csv_path = os.path.join(export_dir, f"{base}_table.csv")
+                    write_table_csv(csv_path, cols, table_rows)
+                    saved_paths.append(csv_path)
+                except Exception as e:
+                    messagebox.showwarning("Export Warning", f"Table CSV failed: {e}")
 
-        status_var.set(f"Exported CSV and PNG to {export_dir}")
-        messagebox.showinfo("Export Complete", f"Saved:\n- {csv_path}\n- {png_path}")
+        # --- Plot PNG ---
+        if choices["plot"]:
+            try:
+                png_path = os.path.join(export_dir, f"{base}_plot.png")
+                save_plot_png(fig, png_path, dpi=150)
+                saved_paths.append(png_path)
+            except Exception as e:
+                messagebox.showwarning("Export Warning", f"Plot PNG failed: {e}")
+
+        # Summary-derived outputs need last_summary
+        if last_summary:
+            # --- Per-frame CSV ---
+            if choices["per_frame"]:
+                try:
+                    per_frame_path = os.path.join(export_dir, f"{base}_per_frame_summary.csv")
+                    err = export_per_frame_csv(
+                        per_frame_path,
+                        last_summary.get("avg_pressure_per_frame", []),
+                        last_summary.get("estimated_vgrf_per_frame", [])
+                    )
+                    if err:
+                        messagebox.showwarning("Export Warning", err)
+                    else:
+                        saved_paths.append(per_frame_path)
+                except Exception as e:
+                    messagebox.showwarning("Export Warning", f"Per-frame CSV failed: {e}")
+
+            # --- DOCX ---
+            if choices["docx"]:
+                try:
+                    docx_path = os.path.join(export_dir, f"{base}_report.docx")
+                    err = export_summary_docx(last_summary, docx_path)
+                    if err:
+                        messagebox.showwarning("Export Warning", err)
+                    else:
+                        saved_paths.append(docx_path)
+                except Exception as e:
+                    messagebox.showwarning("Export Warning", f"DOCX export failed: {e}")
+
+            # --- PDF ---
+            if choices["pdf"]:
+                try:
+                    pdf_path = os.path.join(export_dir, f"{base}_report.pdf")
+                    err = export_summary_pdf(last_summary, pdf_path)
+                    if err:
+                        messagebox.showwarning("Export Warning", err)
+                    else:
+                        saved_paths.append(pdf_path)
+                except Exception as e:
+                    messagebox.showwarning("Export Warning", f"PDF export failed: {e}")
+
+        if saved_paths:
+            status_var.set(f"Exported {len(saved_paths)} file(s) to {export_dir}")
+            messagebox.showinfo("Export Complete", "Saved:\n- " + "\n- ".join(saved_paths))
+        else:
+            messagebox.showinfo("Nothing Saved", "No files were created.")
 
     ttk.Button(header, text="Export…", command=do_export).pack(side="right")
 
@@ -107,6 +254,14 @@ def run_ui():
     tab_visual = ttk.Frame(nb)
     nb.add(tab_table, text="Data Table")
     nb.add(tab_visual, text="Visualization")
+
+
+    # ---------- Session Summary Panel ----------
+    tab_summary = ttk.Frame(nb)
+    nb.add(tab_summary, text="Session Summary")
+    summary_panel = SessionSummaryPanel(tab_summary)
+    summary_panel.pack(fill="both", expand=True)
+    
 
     # =========================================================
     # ==================== Data Table tab =====================
@@ -394,6 +549,65 @@ def run_ui():
     canvas = FigureCanvasTkAgg(fig, master=viz_container)
     canvas.get_tk_widget().pack(fill="both", expand=True)
 
+    # Session Summary helper functions
+
+    def infer_dt_from_metadata(lines: list[str], default_dt: float = 1.0) -> float:
+        pat = re.compile(r"Target\s+framerate\s*:\s*([0-9]*\.?[0-9]+)\s*Hz", re.IGNORECASE)
+        for line in lines:
+            m = pat.search(line)
+            if m:
+                try:
+                    fps = float(m.group(1))
+                    if fps > 0:
+                        return 1.0 / fps
+                except:
+                    pass
+        return default_dt
+
+    def infer_dt_from_time_column(rows: list[dict], default_dt: float = 1.0) -> float:
+        if not rows: return default_dt
+        headers = {h.lower(): h for h in rows[0].keys()}
+        time_col = headers.get("time") or headers.get("timestamp")
+        if not time_col: return default_dt
+
+        insole_col = next((headers[h] for h in headers if "insole" in h), None)
+        groups = {}
+        for r in rows[:2000]:
+            grp = r.get(insole_col, "global") if insole_col else "global"
+            try:
+                t = float(r.get(time_col))
+            except:
+                continue
+            groups.setdefault(grp, []).append(t)
+
+        deltas = []
+        for seq in groups.values():
+            if len(seq) < 2: continue
+            seq = sorted(seq)
+            for i in range(1, len(seq)):
+                d = seq[i] - seq[i-1]
+                if d > 0:
+                    deltas.append(d)
+
+        return statistics.median(deltas) if len(deltas) >= 5 else default_dt
+
+    def infer_threshold_from_column(rows: list[dict], default_thr: float = 20.0) -> float:
+        if not rows: return default_thr
+        headers = {h.lower(): h for h in rows[0].keys()}
+        thr_col = headers.get("threshold")
+        if not thr_col: return default_thr
+
+        vals = []
+        for r in rows[:5000]:
+            try:
+                v = float(r.get(thr_col))
+                if v >= 0:
+                    vals.append(v)
+            except:
+                pass
+        return statistics.median(vals) if vals else default_thr
+
+
     # =========================================================
     # ====================== Functions ========================
     # =========================================================
@@ -456,6 +670,46 @@ def run_ui():
         nb.select(tab_table)   # show the Data Table front page
         show_page(0)
         update_plot()
+
+        # --- AUTO-CALCULATE SUMMARY FOR THIS CSV ---
+        dt_from_meta = infer_dt_from_metadata(lines[:start_index], default_dt=1.0)
+        dt = infer_dt_from_time_column(data_storage, default_dt=dt_from_meta)
+        contact_thr = infer_threshold_from_column(data_storage, default_thr=20.0)
+        sensor_keys = infer_sensor_keys(data_storage)
+
+        # compute once here and store for export
+        s = compute_session_summary(
+            data_storage=data_storage,
+            sensor_keys=sensor_keys,
+            contact_threshold=contact_thr,
+            dt=dt
+        )
+
+        # populate the Session Summary tab (UI)
+        summary_panel.load(
+            data_storage,
+            sensor_keys,
+            contact_threshold=contact_thr,
+            dt=dt
+        )
+
+        # cache fields for export
+        nonlocal last_summary, last_base_name
+        last_base_name = (current_file or "export").replace(" ", "_").replace("/", "_")
+        last_summary = {
+            "frames": s.frames,
+            "sensors": s.sensors,
+            "global_min": s.global_min,
+            "global_max": s.global_max,
+            "contact_time_frames": s.contact_time_frames,
+            "contact_threshold": s.contact_threshold,
+            "pti": s.pti,
+            "dt": s.dt,
+            "avg_pressure_per_frame": s.avg_pressure_per_frame,
+            "estimated_vgrf_per_frame": s.estimated_vgrf_per_frame,
+        }
+
+        status_var.set(status_var.get() + f" | dt={dt:.3f}s, thr={contact_thr:.2f} kPa")
 
     def _safe_float(s):
         try:

@@ -4,6 +4,7 @@ from typing import Dict, List, Sequence, Optional
 import math
 import re
 
+
 @dataclass
 class SessionSummary:
     frames: int
@@ -17,6 +18,7 @@ class SessionSummary:
     pti: float  # pressure–time integral using avg_pressure * dt
     dt: float
 
+
 def _safe_float(x) -> Optional[float]:
     try:
         v = float(x)
@@ -26,16 +28,31 @@ def _safe_float(x) -> Optional[float]:
     except Exception:
         return None
 
+
 # columns to avoid when inferring sensors
-KNOWN_META = {"frame", "subject", "trial", "insole", "foot", "side",
-              "peak", "avg", "average", "contact", "area", "time", "threshold"}
+KNOWN_META = {
+    "frame",
+    "subject",
+    "trial",
+    "insole",
+    "foot",
+    "side",
+    "peak",
+    "avg",
+    "average",
+    "contact",
+    "area",
+    "time",
+    "threshold",
+}
 
 SENSOR_NAME_PAT = re.compile(r"^(sensor(_|\s)?\d+|s\d+|\d+)$", re.IGNORECASE)
+
 
 def infer_sensor_keys(
     data_storage: List[Dict[str, object]],
     min_numeric_ratio: float = 0.9,
-    sample_rows: int = 200
+    sample_rows: int = 200,
 ) -> List[str]:
     """Infer which columns are sensels/sensors."""
     if not data_storage:
@@ -45,7 +62,8 @@ def infer_sensor_keys(
 
     def is_meta(name: str) -> bool:
         low = name.lower()
-        if low in KNOWN_META: return True
+        if low in KNOWN_META:
+            return True
         # obvious non-sensor descriptors
         return any(k in low for k in ("units", "left", "right", "median", "mean"))
 
@@ -53,7 +71,7 @@ def infer_sensor_keys(
 
     # try by name first
     for c in cols:
-        if is_meta(c): 
+        if is_meta(c):
             continue
         if SENSOR_NAME_PAT.match(c.replace(" ", "_")):
             candidates.append(c)
@@ -61,7 +79,7 @@ def infer_sensor_keys(
     # fallback: numeric columns test
     if not candidates:
         for c in cols:
-            if is_meta(c): 
+            if is_meta(c):
                 continue
             numeric_hits = 0
             checks = 0
@@ -79,6 +97,7 @@ def infer_sensor_keys(
     ordered = [c for c in cols if c in set(candidates)]
     return ordered
 
+
 def compute_session_summary(
     data_storage: List[Dict[str, object]],
     sensor_keys: Sequence[str],
@@ -88,13 +107,16 @@ def compute_session_summary(
     """Lightweight summary independent of the main calc module."""
     if not data_storage or not sensor_keys:
         return SessionSummary(
-            frames=0, sensors=0,
+            frames=0,
+            sensors=0,
             avg_pressure_per_frame=[],
             estimated_vgrf_per_frame=[],
-            global_min=0.0, global_max=0.0,
+            global_min=0.0,
+            global_max=0.0,
             contact_time_frames=0,
             contact_threshold=contact_threshold,
-            pti=0.0, dt=dt
+            pti=0.0,
+            dt=dt,
         )
 
     frames = len(data_storage)
@@ -129,11 +151,14 @@ def compute_session_summary(
             contact_frames += 1
 
         for v in vals:
-            if v < gmin: gmin = v
-            if v > gmax: gmax = v
+            if v < gmin:
+                gmin = v
+            if v > gmax:
+                gmax = v
 
     if gmin == float("inf"):
-        gmin = gmax = 0.0
+        gmin = 0.0
+        gmax = 0.0
 
     return SessionSummary(
         frames=frames,

@@ -11,7 +11,8 @@ import os
 import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import re, statistics
+import re
+import statistics
 from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
 
 # Drag & drop (graceful fallback if tkinterdnd2 is not present)
@@ -560,52 +561,59 @@ def run_ui():
                     fps = float(m.group(1))
                     if fps > 0:
                         return 1.0 / fps
-                except:
-                    pass
+                except Exception:
+                 pass
         return default_dt
 
     def infer_dt_from_time_column(rows: list[dict], default_dt: float = 1.0) -> float:
-        if not rows: return default_dt
+        if not rows:
+            return default_dt
         headers = {h.lower(): h for h in rows[0].keys()}
         time_col = headers.get("time") or headers.get("timestamp")
-        if not time_col: return default_dt
+        if not time_col:
+            return default_dt
 
         insole_col = next((headers[h] for h in headers if "insole" in h), None)
-        groups = {}
+        groups: dict[str, list[float]] = {}
         for r in rows[:2000]:
             grp = r.get(insole_col, "global") if insole_col else "global"
             try:
                 t = float(r.get(time_col))
-            except:
+            except (TypeError, ValueError):
                 continue
             groups.setdefault(grp, []).append(t)
 
-        deltas = []
+        deltas: list[float] = []
         for seq in groups.values():
-            if len(seq) < 2: continue
+            if len(seq) < 2:
+                continue
             seq = sorted(seq)
             for i in range(1, len(seq)):
-                d = seq[i] - seq[i-1]
+                d = seq[i] - seq[i - 1]
                 if d > 0:
                     deltas.append(d)
 
         return statistics.median(deltas) if len(deltas) >= 5 else default_dt
 
     def infer_threshold_from_column(rows: list[dict], default_thr: float = 20.0) -> float:
-        if not rows: return default_thr
+        if not rows:
+            return default_thr
         headers = {h.lower(): h for h in rows[0].keys()}
         thr_col = headers.get("threshold")
-        if not thr_col: return default_thr
+        if not thr_col:
+            return default_thr
 
-        vals = []
+        vals: list[float] = []
         for r in rows[:5000]:
             try:
                 v = float(r.get(thr_col))
-                if v >= 0:
-                    vals.append(v)
-            except:
-                pass
+            except (TypeError, ValueError):
+                continue
+            if v >= 0:
+                vals.append(v)
+
         return statistics.median(vals) if vals else default_thr
+
 
 
     # =========================================================

@@ -3,6 +3,7 @@ from sole_solutions.core.export_manager import (
 )
 from sole_solutions.core.session_summary import infer_sensor_keys, compute_session_summary
 from sole_solutions.core.export import write_table_csv, save_plot_png
+from sole_solutions.csv_processing import CSVProcessor
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -480,6 +481,20 @@ def run_ui():
     sel_var = tk.StringVar(value="Selected: None")
     ttk.Label(left_frame, textvariable=sel_var, style="Hint.TLabel").pack(anchor="w", padx=4)
     draw_zone_grid()
+
+    csv_calc = CSVProcessor()
+
+
+    def calculate_summary():
+        csv_calc.load(current_file)
+        sensor_peaks = csv_calc.peak_pressure_per_sensor()
+        # Print sensor_peaks to the console (and also update status briefly)
+        print("sensor_peaks:", sensor_peaks)
+        status_var.set("Printed sensor_peaks to console")
+
+    calculate_button = ttk.Button(left_frame, text="Calculate Peaks", command=calculate_summary)
+    calculate_button.pack(fill="x", pady=(12, 0))
+    
 
     # ---- Right column (File 2 Data Table style) ----
     right_frame = tk.Frame(tab_table, bg="#f2f2f2")

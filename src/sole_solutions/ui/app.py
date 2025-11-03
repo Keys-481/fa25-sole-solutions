@@ -672,14 +672,10 @@ def run_ui():
     # =========================================================
     # ====================== Calculations =====================
     # =========================================================
-    def peak_pressure_per_sensor(rows: list[dict], default_thr: float = 20.0) -> Dict[str, float]:
-        """Return a mapping of sensor -> peak pressure (float).
-
-        Rows missing the required columns or having non-numeric peak
-        values are skipped. Comparison uses float(max).
-        """
+    # Peak Pressure (kPa/N/cm²) – maximum force under each sensor or region. 
+    def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
         if not rows:
-            return default_thr
+            return 0
 
         peaks: Dict[str, float] = {}
         for r in rows[:5000]:

@@ -15,6 +15,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import re
 import statistics
 from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
+from typing import Dict, List, Optional
 
 # Drag & drop (graceful fallback if tkinterdnd2 is not present)
 try:
@@ -486,14 +487,45 @@ def run_ui():
 
 
     def calculate_summary():
-        csv_calc.load(current_file)
-        sensor_peaks = csv_calc.peak_pressure_per_sensor()
+        sensor_peaks = peak_pressure_per_sensor(data_storage)
         # Print sensor_peaks to the console (and also update status briefly)
         print("sensor_peaks:", sensor_peaks)
         status_var.set("Printed sensor_peaks to console")
 
     calculate_button = ttk.Button(left_frame, text="Calculate Peaks", command=calculate_summary)
+    # Pack button and add a small readout area for sensor peaks
+    def _show_peaks(peaks):
+        peaks_text.config(state="normal")
+        peaks_text.delete("1.0", "end")
+        if isinstance(peaks, dict):
+            for k in sorted(peaks):
+                peaks_text.insert("end", f"{k}: {peaks[k]}\n")
+        elif isinstance(peaks, (list, tuple)):
+            for i, v in enumerate(peaks):
+                peaks_text.insert("end", f"{i}: {v}\n")
+        else:
+            peaks_text.insert("end", repr(peaks) + "\n")
+        peaks_text.config(state="disabled")
+
+    def _run_and_show():
+        try:
+            calculate_summary()  # existing function (loads file and prints)
+            peaks = peak_pressure_per_sensor(data_storage)
+            _show_peaks(peaks)
+            status_var.set("Sensor peaks updated")
+        except Exception as e:
+            messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
+
+    calculate_button.configure(command=_run_and_show)
     calculate_button.pack(fill="x", pady=(12, 0))
+
+    peaks_frame = ttk.LabelFrame(left_frame, text="Sensor Peaks", padding=(8, 6))
+    peaks_frame.pack(fill="both", pady=(8, 0))
+    peaks_text = tk.Text(peaks_frame, height=8, width=34, wrap="none", state="disabled")
+    peaks_text.pack(side="left", fill="both", expand=True)
+    peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
+    peaks_scroll.pack(side="right", fill="y")
+    peaks_text.configure(yscrollcommand=peaks_scroll.set)
     
 
     # ---- Right column (File 2 Data Table style) ----
@@ -641,7 +673,39 @@ def run_ui():
 
         return statistics.median(vals) if vals else default_thr
 
+    # =========================================================
+    # ====================== Calculations =====================
+    # =========================================================
+    def peak_pressure_per_sensor(rows: list[dict], default_thr: float = 20.0) -> Dict[str, float]:
+        """Return a mapping of sensor -> peak pressure (float).
 
+        Rows missing the required columns or having non-numeric peak
+        values are skipped. Comparison uses float(max).
+        """
+        if not rows:
+            return default_thr
+
+        peaks: Dict[str, float] = {}
+        for r in rows[:5000]:
+            sensor = r.get("Sensor")
+            peak_str = r.get("Peak Pressure (kPa)")
+            if sensor is None or peak_str is None:
+                # skip rows that don't have expected columns
+                continue
+            peak_str = peak_str.strip()
+            if peak_str == "":
+                continue
+            try:
+                val = float(peak_str)
+            except (ValueError, TypeError):
+                # skip non-numeric values
+                continue
+
+            prev = peaks.get(sensor)
+            if prev is None or val > prev:
+                peaks[sensor] = val
+
+        return peaks
 
     # =========================================================
     # ====================== Functions ========================

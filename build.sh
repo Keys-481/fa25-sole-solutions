@@ -97,6 +97,12 @@ if [[ "${PACKAGE:-0}" == "1" ]]; then
       --windowed \
       --onefile \
       --collect-all tkinter \
+      --add-data "C:/Users/starw/Documents/BoiseState/CS481/vscode/fa25-sole-solutions/src/sole_solutions/ui/images/bottomleft.png;sole_solutions/ui/images" \
+      --add-data "C:/Users/starw/Documents/BoiseState/CS481/vscode/fa25-sole-solutions/src/sole_solutions/ui/images/bottomright.png;sole_solutions/ui/images" \
+      --add-data "C:/Users/starw/Documents/BoiseState/CS481/vscode/fa25-sole-solutions/src/sole_solutions/ui/images/middleleft.png;sole_solutions/ui/images" \
+      --add-data "C:/Users/starw/Documents/BoiseState/CS481/vscode/fa25-sole-solutions/src/sole_solutions/ui/images/middleright.png;sole_solutions/ui/images" \
+      --add-data "C:/Users/starw/Documents/BoiseState/CS481/vscode/fa25-sole-solutions/src/sole_solutions/ui/images/topleft.png;sole_solutions/ui/images" \
+      --add-data "C:/Users/starw/Documents/BoiseState/CS481/vscode/fa25-sole-solutions/src/sole_solutions/ui/images/topright.png;sole_solutions/ui/images" \
       --noconfirm \
       src/main.py
   else

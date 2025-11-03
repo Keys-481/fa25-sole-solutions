@@ -683,7 +683,7 @@ def run_ui():
     # Peak Pressure (kPa/N/cm²) – maximum force under each sensor or region. 
     def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
         if not rows:
-            return 0
+            return None
 
         peaks: Dict[str, float] = {}
         for r in rows[:5000]:

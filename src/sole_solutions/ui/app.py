@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import re
 import statistics
 from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
+from typing import Dict
 
 # Drag & drop (graceful fallback if tkinterdnd2 is not present)
 try:
@@ -399,7 +400,7 @@ def run_ui():
     zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
     zones_frame.pack(fill="x", pady=10)
 
-    zone_canvas = tk.Canvas(zones_frame, width=150, height=250, bg="#ffffff", highlightthickness=1, relief="ridge")
+    zone_canvas = tk.Canvas(zones_frame, width=150, height=200, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
 
     # Resolve absolute path relative to this file
@@ -432,7 +433,7 @@ def run_ui():
 
     def draw_zone_grid():
         zone_canvas.delete("all")
-        w, h = 150, 250
+        w, h = 150, 200
         cols, rows = 2, 3
         cw, ch = w / cols, h / rows
 
@@ -480,6 +481,53 @@ def run_ui():
     sel_var = tk.StringVar(value="Selected: None")
     ttk.Label(left_frame, textvariable=sel_var, style="Hint.TLabel").pack(anchor="w", padx=4)
     draw_zone_grid()
+
+    # =========================================================
+    # ================ Peak Calculation Button =================
+    # =========================================================
+
+    # Prints sensor peaks to console for debug purposes
+    def calculate_summary():
+        sensor_peaks = peak_pressure_per_sensor(data_storage)
+        # Print sensor_peaks to the console (and also update status briefly)
+        print("sensor_peaks:", sensor_peaks)
+        status_var.set("Printed sensor_peaks to console")
+
+    calculate_button = ttk.Button(left_frame, text="Calculate Peaks", command=calculate_summary)
+    # Pack button and add a small readout area for sensor peaks
+    def _show_peaks(peaks):
+        peaks_text.config(state="normal")
+        peaks_text.delete("1.0", "end")
+        if isinstance(peaks, dict):
+            for k in sorted(peaks):
+                peaks_text.insert("end", f"{k}: {peaks[k]}\n")
+        elif isinstance(peaks, (list, tuple)):
+            for i, v in enumerate(peaks):
+                peaks_text.insert("end", f"{i}: {v}\n")
+        else:
+            peaks_text.insert("end", repr(peaks) + "\n")
+        peaks_text.config(state="disabled")
+
+    def _run_and_show():
+        try:
+            calculate_summary()  # existing function (loads file and prints)
+            peaks = peak_pressure_per_sensor(data_storage)
+            _show_peaks(peaks)
+            status_var.set("Sensor peaks updated")
+        except Exception as e:
+            messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
+
+    calculate_button.configure(command=_run_and_show)
+    calculate_button.pack(fill="x", pady=(12, 0))
+
+    peaks_frame = ttk.LabelFrame(left_frame, text="Sensor Peaks", padding=(8, 6))
+    peaks_frame.pack(fill="both", pady=(8, 0))
+    peaks_text = tk.Text(peaks_frame, height=8, width=34, wrap="none", state="disabled")
+    peaks_text.pack(side="left", fill="both", expand=True)
+    peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
+    peaks_scroll.pack(side="right", fill="y")
+    peaks_text.configure(yscrollcommand=peaks_scroll.set)
+    
 
     # ---- Right column (File 2 Data Table style) ----
     right_frame = tk.Frame(tab_table, bg="#f2f2f2")
@@ -626,7 +674,82 @@ def run_ui():
 
         return statistics.median(vals) if vals else default_thr
 
+    # =========================================================
+    # ====================== Calculations =====================
+    # =========================================================
 
+    '''Basic Plantar Loading'''
+
+    # Peak Pressure (kPa/N/cm²) – maximum force under each sensor or region. 
+    def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
+        if not rows:
+            return {}
+
+        peaks: Dict[str, float] = {}
+        for r in rows[:5000]:
+            sensor = r.get("Sensor")
+            peak_str = r.get("Peak Pressure (kPa)")
+            if sensor is None or peak_str is None:
+                # skip rows that don't have expected columns
+                continue
+            peak_str = peak_str.strip()
+            if peak_str == "":
+                continue
+            try:
+                val = float(peak_str)
+            except (ValueError, TypeError):
+                # skip non-numeric values
+                continue
+
+            prev = peaks.get(sensor)
+            if prev is None or val > prev:
+                peaks[sensor] = val
+
+        return peaks
+    
+    # Pressure–Time Integral (PTI) – cumulative loading over stance.
+
+    # Contact Area – surface area of the foot in contact with the insole.
+
+    # Center of Pressure (CoP) Path – trajectory of pressure centroid across stance.
+
+    '''Temporal-Spatial Parameters'''
+
+    # Stance time / swing time
+
+    # Step time, stride time, cadence
+
+    # Gait cycle phases (initial contact, loading response, mid-stance, push-off)
+
+    # Symmetry indices (right vs. left stance, timing, or loading).
+
+    '''Force & Work Estimates'''
+
+    # Vertical Ground Reaction Force (vGRF) estimates (from summing insole pressures).
+
+    # Impulse (Force × Time) – integral of vGRF curve.
+
+    # Load rates – how quickly force is applied (important for injury risk).
+
+    '''Footstrike & Running Metrics'''
+
+    # Footstrike angle (heel strike, midfoot, forefoot classification).
+
+    # Step length & stride length (estimated via CoP movement + timing).
+
+    # Running symmetry and variability.
+
+    # Jump/landing forces (peak and impulse).
+
+    '''Clinical & Performance Indicators'''
+
+    # Balance measures – CoP sway area, velocity (for quiet standing tasks).
+
+    # Pressure distribution by foot region (heel, midfoot, forefoot, hallux, lateral toes).
+
+    # Asymmetries in gait or running (useful for rehab, e.g., post-ACL reconstruction).
+
+    # Load monitoring – total steps, cumulative load exposure.
 
     # =========================================================
     # ====================== Functions ========================

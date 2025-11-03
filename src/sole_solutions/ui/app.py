@@ -14,7 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import re
 import statistics
 from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
-from typing import Dict, List, Optional
+from typing import Dict
 
 # Drag & drop (graceful fallback if tkinterdnd2 is not present)
 try:

@@ -400,7 +400,7 @@ def run_ui():
     zones_frame = tk.LabelFrame(left_frame, text="Insole Zones (3×2)", bg="#ffffff", padx=10, pady=10)
     zones_frame.pack(fill="x", pady=10)
 
-    zone_canvas = tk.Canvas(zones_frame, width=150, height=250, bg="#ffffff", highlightthickness=1, relief="ridge")
+    zone_canvas = tk.Canvas(zones_frame, width=150, height=200, bg="#ffffff", highlightthickness=1, relief="ridge")
     zone_canvas.pack()
 
     # Resolve absolute path relative to this file
@@ -433,7 +433,7 @@ def run_ui():
 
     def draw_zone_grid():
         zone_canvas.delete("all")
-        w, h = 150, 250
+        w, h = 150, 200
         cols, rows = 2, 3
         cw, ch = w / cols, h / rows
 
@@ -482,6 +482,11 @@ def run_ui():
     ttk.Label(left_frame, textvariable=sel_var, style="Hint.TLabel").pack(anchor="w", padx=4)
     draw_zone_grid()
 
+    # =========================================================
+    # ================ Peak Calculation Button =================
+    # =========================================================
+
+    # Prints sensor peaks to console for debug purposes
     def calculate_summary():
         sensor_peaks = peak_pressure_per_sensor(data_storage)
         # Print sensor_peaks to the console (and also update status briefly)

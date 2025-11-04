@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import re
 import statistics
 from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
+from sole_solutions.ui.about_window import AboutWindow
 from typing import Dict
 
 # Drag & drop (graceful fallback if tkinterdnd2 is not present)
@@ -246,6 +247,12 @@ def run_ui():
             messagebox.showinfo("Nothing Saved", "No files were created.")
 
     ttk.Button(header, text="Export…", command=do_export).pack(side="right")
+
+    def open_about():
+        win = tk.Toplevel(root)
+        AboutWindow(win).pack(fill="both", expand=True)
+
+    ttk.Button(header, text="About", command=open_about).pack(side="right", padx=(0, 10))
 
     # ---------- Notebook ----------
     nb = ttk.Notebook(root)

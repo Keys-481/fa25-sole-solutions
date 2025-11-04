@@ -576,7 +576,7 @@ def run_ui():
     tk.Label(metric_frame, text="Select Metric:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
     metric_var = tk.StringVar(value="Peak Pressure")
     metric_combo = ttk.Combobox(metric_frame, textvariable=metric_var, state="readonly",
-                                values=["Peak Pressure", "Minimum Pressure", "Contact Area", "Avg Pressure", "Contact Area"], width=20)
+                                values=["Peak Pressure", "Minimum Pressure", "Contact Area", "Avg Pressure", "Contact %"], width=20)
     metric_combo.pack(side="left", padx=(4, 6))
     metric_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
 
@@ -960,7 +960,7 @@ def run_ui():
         contact_col = next((headers[h] for h in headers if "contact" in h and "area" in h), None)
         avg_col = next((headers[h] for h in headers if "avg" in h and "pressure" in h), None)
         min_col = next((headers[h] for h in headers if "min" in h and "pressure" in h), None)
-
+        contact_pct_col = next((headers[h] for h in headers if "%" in h or "percent" in h), None)
 
         # Which metric are we plotting?
         selected_metric = metric_var.get()
@@ -969,6 +969,8 @@ def run_ui():
         elif selected_metric == "Avg Pressure":
             y_col = avg_col
         elif selected_metric == "Minimum Pressure":
+            y_col = min_col
+        elif selected_metric == "Contact %":
             y_col = min_col
         else:
             y_col = peak_col
@@ -1014,6 +1016,8 @@ def run_ui():
             ax.set_xlabel("Frame" if frame_col else "Sample Index")
             if selected_metric in ("Peak Pressure", "Avg Pressure"):
                 ylabel_unit = "kPa"
+            elif selected_metric == "Contact %":
+                ylabel_unit = "%"
             else:
                 ylabel_unit = "cm²"
             ax.set_ylabel(f"{selected_metric} ({ylabel_unit})")

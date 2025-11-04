@@ -580,6 +580,25 @@ def run_ui():
     metric_combo.pack(side="left", padx=(4, 6))
     metric_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
 
+    # --- Foot selection checkboxes ---
+    foot_toggle_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    foot_toggle_frame.pack(fill="x", pady=(0, 10))
+
+    show_left_var = tk.BooleanVar(value=True)
+    show_right_var = tk.BooleanVar(value=True)
+
+    left_check = ttk.Checkbutton(
+        foot_toggle_frame, text="Show Left Foot", variable=show_left_var,
+        command=lambda: update_plot()
+    )
+    right_check = ttk.Checkbutton(
+        foot_toggle_frame, text="Show Right Foot", variable=show_right_var,
+        command=lambda: update_plot()
+    )
+
+    left_check.pack(side="left", padx=6)
+    right_check.pack(side="left", padx=6)
+
 
     tk.Label(range_frame, text="Frame Range:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
     frame_start_var = tk.StringVar(value="0")
@@ -1010,10 +1029,19 @@ def run_ui():
         # Plot
         colors = {"Left": "#169873", "Right": "#f06292"}
         plotted = False
-        for side, data in sides.items():
+        # Left right checkbox
+        if show_left_var.get():
+            data = sides["Left"]
             if data["x"]:
-                ax.plot(data["x"], data["y"], label=f"{side} Foot", color=colors[side], linewidth=1.8)
+                ax.plot(data["x"], data["y"], label="Left Foot", color=colors["Left"], linewidth=1.8)
                 plotted = True
+
+        if show_right_var.get():
+            data = sides["Right"]
+            if data["x"]:
+                ax.plot(data["x"], data["y"], label="Right Foot", color=colors["Right"], linewidth=1.8)
+                plotted = True
+
 
         if plotted:
             ax.set_xlabel("Frame" if frame_col else "Sample Index")

@@ -1029,7 +1029,7 @@ def run_ui():
         # Plot
         colors = {"Left": "#169873", "Right": "#f06292"}
         plotted = False
-        # Left right check
+        # Left right checkbox
         if show_left_var.get():
             data = sides["Left"]
             if data["x"]:

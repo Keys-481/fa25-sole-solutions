@@ -959,6 +959,8 @@ def run_ui():
         peak_col = next((headers[h] for h in headers if "peak" in h and "pressure" in h), None)
         contact_col = next((headers[h] for h in headers if "contact" in h and "area" in h), None)
         avg_col = next((headers[h] for h in headers if "avg" in h and "pressure" in h), None)
+        min_col = next((headers[h] for h in headers if "min" in h and "pressure" in h), None)
+
 
         # Which metric are we plotting?
         selected_metric = metric_var.get()
@@ -966,6 +968,8 @@ def run_ui():
             y_col = contact_col
         elif selected_metric == "Avg Pressure":
             y_col = avg_col
+        elif selected_metric == "Minimum Pressure":
+            y_col = min_col
         else:
             y_col = peak_col
 

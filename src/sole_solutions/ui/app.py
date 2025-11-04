@@ -576,7 +576,7 @@ def run_ui():
     tk.Label(metric_frame, text="Select Metric:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
     metric_var = tk.StringVar(value="Peak Pressure")
     metric_combo = ttk.Combobox(metric_frame, textvariable=metric_var, state="readonly",
-                                values=["Peak Pressure", "Contact Area", "Avg Pressure"], width=20)
+                                values=["Peak Pressure", "Minimum Pressure", "Contact Area", "Avg Pressure"], width=20)
     metric_combo.pack(side="left", padx=(4, 6))
     metric_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
 

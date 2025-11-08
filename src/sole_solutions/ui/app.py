@@ -258,11 +258,13 @@ def run_ui():
     nb = ttk.Notebook(root)
     nb.pack(fill="both", expand=True, padx=16, pady=16)
 
-    # Tabs order: Data Table (front page), Visualization (blank graph)
+    # Tabs order: Data Table (front page), Visualization (blank graph), Calculations
     tab_table = ttk.Frame(nb)
     tab_visual = ttk.Frame(nb)
+    tab_calc = ttk.Frame(nb)
     nb.add(tab_table, text="Data Table")
     nb.add(tab_visual, text="Visualization")
+    nb.add(tab_calc, text="Calculations")
 
 
     # ---------- Session Summary Panel ----------
@@ -700,6 +702,13 @@ def run_ui():
 
         return statistics.median(vals) if vals else default_thr
 
+    # =========================================================
+    # =================== Calculations tab ====================
+    # =========================================================
+    calc_container = tk.Frame(tab_calc, bg="#f2f2f2")
+    calc_container.pack(fill="both", expand=True, padx=20, pady=20)
+
+    
     # =========================================================
     # ====================== Calculations =====================
     # =========================================================

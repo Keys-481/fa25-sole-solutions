@@ -638,6 +638,32 @@ def run_ui():
     _row(ctrl, 6, "Smooth window (frames)", smooth_var)
     ttk.Button(ctrl, text="Recompute", command=lambda: refresh_calc()).grid(row=7, column=0, columnspan=2, pady=(8, 0))
 
+    peak_matrix = []
+    
+
+    # ---- Sensor Peaks Frame Range ----
+    def peak_pressure_frame_range(rows: list[dict], start_frame, end_frame) -> Dict[str, float]:
+        if not rows:
+            return {}
+        peaks: Dict[str, float] = {}
+        for r in rows[start_frame:end_frame]:
+            sensor = r.get("Sensor")
+            peak_str = r.get("Peak Pressure (kPa)")
+            if sensor is None or peak_str is None:
+                continue
+            peak_str = str(peak_str).strip()
+            if peak_str == "":
+                continue
+            try:
+                val = float(peak_str)
+            except (ValueError, TypeError):
+                continue
+            prev = peaks.get(sensor)
+            if prev is None or val > prev:
+                peaks[sensor] = val
+        peak_matrix.append(peaks)
+        return peaks
+
     # ---- Sensor Peaks (moved here) ----
     def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
         if not rows:

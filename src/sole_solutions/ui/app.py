@@ -641,7 +641,7 @@ def run_ui():
     peak_matrix: Dict[tuple[int, int], Dict[str, float]] = {}
 
     # ---- Frame Range Selection ----
-    frame_range_label = ttk.LabelFrame(calc_left, text="Peak Matrix Frame Range", padding=10)
+    frame_range_label = ttk.LabelFrame(calc_left, text="Sensor Peak Calculation", padding=10)
     frame_range_label.pack(fill="x", pady=(10, 6))
     
     peak_start_var = tk.StringVar(value="0")
@@ -687,14 +687,14 @@ def run_ui():
             peaks = peak_pressure_frame_range(data_storage, start, end)
             peak_matrix[(start, end)] = peaks
             status_var.set(f"Stored peak matrix for frames {start}-{end}")
-            display_peak_matrix()
+            display_sensor_peaks()
         except ValueError:
             messagebox.showwarning("Invalid Input", "Please enter valid integer values for frame range.")
 
-    ttk.Button(frame_range_label, text="Calculate & Store", command=calculate_and_store_peaks).grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+    ttk.Button(frame_range_label, text="Calculate", command=calculate_and_store_peaks).grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0))
 
     # ---- Peak Matrix Display ----
-    matrix_frame = ttk.LabelFrame(calc_left, text="Peak Matrix Results", padding=(8, 6))
+    matrix_frame = ttk.LabelFrame(calc_left, text="Sensor Peak Results", padding=(8, 6))
     matrix_frame.pack(fill="both", expand=True, pady=(6, 8))
     matrix_frame.columnconfigure(0, weight=1)
     matrix_frame.rowconfigure(0, weight=1)
@@ -705,7 +705,7 @@ def run_ui():
     matrix_scroll.grid(row=0, column=1, sticky="ns")
     matrix_text.configure(yscrollcommand=matrix_scroll.set)
 
-    def display_peak_matrix():
+    def display_sensor_peaks():
         matrix_text.config(state="normal")
         matrix_text.delete("1.0", "end")
         if not peak_matrix:
@@ -725,66 +725,66 @@ def run_ui():
         matrix_text.config(state="disabled")
         return peaks
 
-    # ---- Sensor Peaks (moved here) ----
-    def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
-        if not rows:
-            return {}
-        peaks: Dict[str, float] = {}
-        for r in rows[:5000]:
-            sensor = r.get("Sensor")
-            peak_str = r.get("Peak Pressure (kPa)")
-            if sensor is None or peak_str is None:
-                continue
-            peak_str = str(peak_str).strip()
-            if peak_str == "":
-                continue
-            try:
-                val = float(peak_str)
-            except (ValueError, TypeError):
-                continue
-            prev = peaks.get(sensor)
-            if prev is None or val > prev:
-                peaks[sensor] = val
-        return peaks
+    # # ---- Sensor Peaks (moved here) ----
+    # def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
+    #     if not rows:
+    #         return {}
+    #     peaks: Dict[str, float] = {}
+    #     for r in rows[:5000]:
+    #         sensor = r.get("Sensor")
+    #         peak_str = r.get("Peak Pressure (kPa)")
+    #         if sensor is None or peak_str is None:
+    #             continue
+    #         peak_str = str(peak_str).strip()
+    #         if peak_str == "":
+    #             continue
+    #         try:
+    #             val = float(peak_str)
+    #         except (ValueError, TypeError):
+    #             continue
+    #         prev = peaks.get(sensor)
+    #         if prev is None or val > prev:
+    #             peaks[sensor] = val
+    #     return peaks
 
-    def calculate_summary():
-        sensor_peaks = peak_pressure_per_sensor(data_storage)
-        print("sensor_peaks:", sensor_peaks)
-        status_var.set("Printed sensor_peaks to console")
+    # def calculate_summary():
+    #     sensor_peaks = peak_pressure_per_sensor(data_storage)
+    #     print("sensor_peaks:", sensor_peaks)
+    #     status_var.set("Printed sensor_peaks to console")
 
-    def _show_peaks(peaks):
-        peaks_text.config(state="normal")
-        peaks_text.delete("1.0", "end")
-        if isinstance(peaks, dict):
-            for k in sorted(peaks):
-                peaks_text.insert("end", f"{k}: {peaks[k]}\n")
-        elif isinstance(peaks, (list, tuple)):
-            for i, v in enumerate(peaks):
-                peaks_text.insert("end", f"{i}: {v}\n")
-        else:
-            peaks_text.insert("end", repr(peaks) + "\n")
-        peaks_text.config(state="disabled")
+    # def _show_peaks(peaks):
+    #     peaks_text.config(state="normal")
+    #     peaks_text.delete("1.0", "end")
+    #     if isinstance(peaks, dict):
+    #         for k in sorted(peaks):
+    #             peaks_text.insert("end", f"{k}: {peaks[k]}\n")
+    #     elif isinstance(peaks, (list, tuple)):
+    #         for i, v in enumerate(peaks):
+    #             peaks_text.insert("end", f"{i}: {v}\n")
+    #     else:
+    #         peaks_text.insert("end", repr(peaks) + "\n")
+    #     peaks_text.config(state="disabled")
 
-    def _run_and_show():
-        try:
-            calculate_summary()
-            peaks = peak_pressure_per_sensor(data_storage)
-            _show_peaks(peaks)
-            status_var.set("Sensor peaks updated")
-        except Exception as e:
-            messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
+    # def _run_and_show():
+    #     try:
+    #         calculate_summary()
+    #         peaks = peak_pressure_per_sensor(data_storage)
+    #         _show_peaks(peaks)
+    #         status_var.set("Sensor peaks updated")
+    #     except Exception as e:
+    #         messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
 
-    ttk.Button(calc_left, text="Calculate Peaks", command=_run_and_show).pack(pady=(10, 6), fill="x")
+    # ttk.Button(calc_left, text="Calculate Peaks", command=_run_and_show).pack(pady=(10, 6), fill="x")
 
-    peaks_frame = ttk.LabelFrame(calc_left, text="Sensor Peaks", padding=(8, 6))
-    peaks_frame.pack(fill="both", expand=True, pady=(0, 8))
-    peaks_frame.columnconfigure(0, weight=1)
-    peaks_frame.rowconfigure(0, weight=1)
-    peaks_text = tk.Text(peaks_frame, wrap="none", state="disabled", height=6, width=1)
-    peaks_text.grid(row=0, column=0, sticky="nsew")
-    peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
-    peaks_scroll.grid(row=0, column=1, sticky="ns")
-    peaks_text.configure(yscrollcommand=peaks_scroll.set)
+    # peaks_frame = ttk.LabelFrame(calc_left, text="Sensor Peaks", padding=(8, 6))
+    # peaks_frame.pack(fill="both", expand=True, pady=(0, 8))
+    # peaks_frame.columnconfigure(0, weight=1)
+    # peaks_frame.rowconfigure(0, weight=1)
+    # peaks_text = tk.Text(peaks_frame, wrap="none", state="disabled", height=6, width=1)
+    # peaks_text.grid(row=0, column=0, sticky="nsew")
+    # peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
+    # peaks_scroll.grid(row=0, column=1, sticky="ns")
+    # peaks_text.configure(yscrollcommand=peaks_scroll.set)
 
     # ---- Key Results box ----
     res_box = ttk.LabelFrame(calc_left, text="Key Results", padding=10)
@@ -1183,7 +1183,8 @@ def run_ui():
             current_middle_right = base_middle_right.subsample(2, 2)
             current_bottom_left  = base_bottom_left.subsample(2, 2)
             current_bottom_right = base_bottom_right.subsample(2, 2)
-            peaks_text.configure(height=5)
+            matrix_text.configure(height=5)
+            # peaks_text.configure(height=5)
             tree.configure(height=10)
         else:
             import_hint.configure(text="Import CSV (click)\n—or—\nDrag & Drop a CSV")
@@ -1194,7 +1195,9 @@ def run_ui():
             current_middle_right = base_middle_right
             current_bottom_left  = base_bottom_left
             current_bottom_right = base_bottom_right
-            peaks_text.configure(height=6)
+            matrix_text.configure(height=6)
+            # peaks_text.configure(height=6)
+
             tree.configure(height=12)
         draw_zone_grid()
 

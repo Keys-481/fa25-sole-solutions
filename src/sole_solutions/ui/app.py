@@ -638,11 +638,22 @@ def run_ui():
     _row(ctrl, 6, "Smooth window (frames)", smooth_var)
     ttk.Button(ctrl, text="Recompute", command=lambda: refresh_calc()).grid(row=7, column=0, columnspan=2, pady=(8, 0))
 
-    peak_matrix = []
+    peak_matrix: Dict[tuple[int, int], Dict[str, float]] = {}
+
+    # ---- Frame Range Selection ----
+    frame_range_label = ttk.LabelFrame(calc_left, text="Peak Matrix Frame Range", padding=10)
+    frame_range_label.pack(fill="x", pady=(10, 6))
     
+    peak_start_var = tk.StringVar(value="0")
+    peak_end_var = tk.StringVar(value="100")
+    
+    ttk.Label(frame_range_label, text="Start Frame:").grid(row=0, column=0, sticky="w", padx=(0, 6))
+    ttk.Entry(frame_range_label, textvariable=peak_start_var, width=10).grid(row=0, column=1, sticky="w", padx=(0, 12))
+    ttk.Label(frame_range_label, text="End Frame:").grid(row=0, column=2, sticky="w", padx=(0, 6))
+    ttk.Entry(frame_range_label, textvariable=peak_end_var, width=10).grid(row=0, column=3, sticky="w")
 
     # ---- Sensor Peaks Frame Range ----
-    def peak_pressure_frame_range(rows: list[dict], start_frame, end_frame) -> Dict[str, float]:
+    def peak_pressure_frame_range(rows: list[dict], start_frame: int, end_frame: int) -> Dict[str, float]:
         if not rows:
             return {}
         peaks: Dict[str, float] = {}
@@ -661,7 +672,57 @@ def run_ui():
             prev = peaks.get(sensor)
             if prev is None or val > prev:
                 peaks[sensor] = val
-        peak_matrix.append(peaks)
+        return peaks
+
+    def calculate_and_store_peaks():
+        try:
+            start = int(peak_start_var.get())
+            end = int(peak_end_var.get())
+            if start < 0 or end <= start:
+                messagebox.showwarning("Invalid Range", "End frame must be greater than start frame, and both must be >= 0.")
+                return
+            if not data_storage:
+                messagebox.showwarning("No Data", "Load a CSV first.")
+                return
+            peaks = peak_pressure_frame_range(data_storage, start, end)
+            peak_matrix[(start, end)] = peaks
+            status_var.set(f"Stored peak matrix for frames {start}-{end}")
+            display_peak_matrix()
+        except ValueError:
+            messagebox.showwarning("Invalid Input", "Please enter valid integer values for frame range.")
+
+    ttk.Button(frame_range_label, text="Calculate & Store", command=calculate_and_store_peaks).grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+
+    # ---- Peak Matrix Display ----
+    matrix_frame = ttk.LabelFrame(calc_left, text="Peak Matrix Results", padding=(8, 6))
+    matrix_frame.pack(fill="both", expand=True, pady=(6, 8))
+    matrix_frame.columnconfigure(0, weight=1)
+    matrix_frame.rowconfigure(0, weight=1)
+    
+    matrix_text = tk.Text(matrix_frame, wrap="none", state="disabled", height=8, width=1, font=("Courier", 9))
+    matrix_text.grid(row=0, column=0, sticky="nsew")
+    matrix_scroll = ttk.Scrollbar(matrix_frame, orient="vertical", command=matrix_text.yview)
+    matrix_scroll.grid(row=0, column=1, sticky="ns")
+    matrix_text.configure(yscrollcommand=matrix_scroll.set)
+
+    def display_peak_matrix():
+        matrix_text.config(state="normal")
+        matrix_text.delete("1.0", "end")
+        if not peak_matrix:
+            matrix_text.insert("end", "No peak data stored yet.\n")
+        else:
+            matrix_text.insert("end", "Frame Range → Sensor → Peak Pressure (kPa)\n")
+            matrix_text.insert("end", "=" * 50 + "\n\n")
+            for (start, end) in sorted(peak_matrix.keys()):
+                matrix_text.insert("end", f"Frames [{start}, {end}]:\n")
+                peaks = peak_matrix[(start, end)]
+                if peaks:
+                    for sensor in sorted(peaks.keys()):
+                        matrix_text.insert("end", f"  {sensor}: {peaks[sensor]:.2f}\n")
+                else:
+                    matrix_text.insert("end", "  (no peaks found)\n")
+                matrix_text.insert("end", "\n")
+        matrix_text.config(state="disabled")
         return peaks
 
     # ---- Sensor Peaks (moved here) ----

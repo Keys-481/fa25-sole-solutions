@@ -287,10 +287,13 @@ def run_ui():
     nb = ttk.Notebook(root)
     nb.pack(fill="both", expand=True, padx=16, pady=16)
 
+    # Tabs order: Data Table (front page), Visualization (blank graph), Calculations
     tab_table = ttk.Frame(nb)
     tab_visual = ttk.Frame(nb)
+    tab_calc = ttk.Frame(nb)
     nb.add(tab_table, text="Data Table")
     nb.add(tab_visual, text="Visualization")
+    nb.add(tab_calc, text="Calculations")
 
     tab_summary = ttk.Frame(nb)
     nb.add(tab_summary, text="Session Summary")
@@ -596,6 +599,59 @@ def run_ui():
     fig.patch.set_facecolor("#f2f2f2")
     canvas = FigureCanvasTkAgg(fig, master=viz_container)
     canvas.get_tk_widget().pack(fill="both", expand=True)
+
+    # =========================================================
+    # =================== Calculations tab ====================
+    # =========================================================
+    
+    calc_container = tk.Frame(tab_calc, bg="#f2f2f2")
+    calc_container.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # =========================================================
+    # ================ Peak Calculation Button ================
+    # =========================================================
+
+    # Prints sensor peaks to console for debug purposes
+    def calculate_summary():
+        sensor_peaks = peak_pressure_per_sensor(data_storage)
+        # Print sensor_peaks to the console (and also update status briefly)
+        print("sensor_peaks:", sensor_peaks)
+        status_var.set("Printed sensor_peaks to console")
+
+    calculate_button = ttk.Button(calc_container, text="Calculate Peaks", command=calculate_summary)
+    # Pack button and add a small readout area for sensor peaks
+    def _show_peaks(peaks):
+        peaks_text.config(state="normal")
+        peaks_text.delete("1.0", "end")
+        if isinstance(peaks, dict):
+            for k in sorted(peaks):
+                peaks_text.insert("end", f"{k}: {peaks[k]}\n")
+        elif isinstance(peaks, (list, tuple)):
+            for i, v in enumerate(peaks):
+                peaks_text.insert("end", f"{i}: {v}\n")
+        else:
+            peaks_text.insert("end", repr(peaks) + "\n")
+        peaks_text.config(state="disabled")
+
+    def _run_and_show():
+        try:
+            calculate_summary()  # existing function (loads file and prints)
+            peaks = peak_pressure_per_sensor(data_storage)
+            _show_peaks(peaks)
+            status_var.set("Sensor peaks updated")
+        except Exception as e:
+            messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
+
+    calculate_button.configure(command=_run_and_show)
+    calculate_button.pack(fill="x", pady=(12, 0))
+
+    peaks_frame = ttk.LabelFrame(calc_container, text="Sensor Peaks", padding=(8, 6))
+    peaks_frame.pack(fill="both", pady=(8, 0))
+    peaks_text = tk.Text(peaks_frame, height=8, width=34, wrap="none", state="disabled")
+    peaks_text.pack(side="left", fill="both", expand=True)
+    peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
+    peaks_scroll.pack(side="right", fill="y")
+    peaks_text.configure(yscrollcommand=peaks_scroll.set)
 
     # =========================================================
     # ====================== Calculations =====================

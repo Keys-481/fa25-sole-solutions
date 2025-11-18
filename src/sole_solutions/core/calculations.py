@@ -20,7 +20,8 @@ def _movavg(xs: List[float], w: int) -> List[float]:
     out, s = [], 0.0
     q = []
     for v in xs:
-        q.append(v); s += v
+        q.append(v) 
+        s += v
         if len(q) > w:
             s -= q.pop(0)
         out.append(s / len(q))
@@ -122,9 +123,11 @@ def compute_cop_path(
         if tot <= 0:
             out.append((float("nan"), float("nan")))
             continue
-        sx = 0.0; sy = 0.0
+        sx = 0.0 
+        sy = 0.0
         for p, (x, y) in zip(frame, xy):
-            sx += p * x; sy += p * y
+            sx += p * x
+            sy += p * y
         out.append((sx / tot, sy / tot))
     return out
 
@@ -143,9 +146,11 @@ def detect_stance_windows(
     spans: List[Tuple[int, int]] = []
     for i, F in enumerate(vgrf_N):
         if not on and F >= thr:
-            on = True; start = i
+            on = True 
+            start = i
         elif on and F < thr:
-            on = False; spans.append((start, i))
+            on = False
+            spans.append((start, i))
     if on:
         spans.append((start, len(vgrf_N)-1))
     return spans
@@ -206,7 +211,8 @@ def compute_load_rate(vgrf_N: List[float], params: CalcParams) -> Dict[str, floa
     idx_t = 0
     for i, F in enumerate(vgrf_N):
         if F >= target:
-            idx_t = i; break
+            idx_t = i
+            break
     avg = (vgrf_N[idx_t] - vgrf_N[0]) * fs / max(1, idx_t) if idx_t > 0 else 0.0
     return {"max_dFdt_Ns": max_slope, "avg_up_to_80pct_Ns": avg}
 

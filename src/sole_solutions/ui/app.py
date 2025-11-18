@@ -172,7 +172,10 @@ def run_ui():
         choice = {"ok": False}
 
         ttk.Button(btns, text="Cancel", command=lambda: win.destroy()).pack(side="right", padx=(0, 6))
-        ttk.Button(btns, text="Export", command=lambda: (choice.update(ok=True), win.destroy())).pack(side="right")
+        def _on_export_click():
+            choice.update(ok=True)
+            win.destroy()
+        ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
         win.update_idletasks()
         x = root.winfo_rootx() + (root.winfo_width() - win.winfo_width()) // 2
@@ -1241,6 +1244,8 @@ def infer_dt_from_time_column(rows: list[dict], default_dt: float = 1.0) -> floa
     for r in rows[:2000]:
         grp = r.get(insole_col, "global") if insole_col else "global"
         val = r.get(time_col)
+        if val is None:
+            continue
         try:
             t = float(val)
         except (TypeError, ValueError):
@@ -1271,6 +1276,8 @@ def infer_threshold_from_column(rows: list[dict], default_thr: float = 20.0) -> 
     vals: list[float] = []
     for r in rows[:5000]:
         raw = r.get(thr_col)
+        if raw is None:
+            continue
         try:
             v = float(raw)
         except (TypeError, ValueError):

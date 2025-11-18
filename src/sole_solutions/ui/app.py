@@ -561,6 +561,17 @@ def run_ui():
     left_check.pack(side="left", padx=6)
     right_check.pack(side="left", padx=6)
 
+    # --- X-axis mode toggle ---
+    xaxis_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    xaxis_frame.pack(fill="x", pady=(0, 10))
+
+    xaxis_mode = tk.StringVar(value="Frames")  # default
+    ttk.Label(xaxis_frame, text="X-Axis:", background="#f2f2f2").pack(side="left", padx=(4, 4))
+    ttk.Radiobutton(xaxis_frame, text="Frames", variable=xaxis_mode, value="Frames",
+                    command=lambda: update_plot()).pack(side="left", padx=(4, 4))
+    ttk.Radiobutton(xaxis_frame, text="Seconds", variable=xaxis_mode, value="Seconds",
+                    command=lambda: update_plot()).pack(side="left", padx=(4, 4))
+
 
     tk.Label(range_frame, text="Frame Range:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
     frame_start_var = tk.StringVar(value="0")
@@ -1032,6 +1043,15 @@ def run_ui():
                 sides[side]["x"].append(xval)
                 sides[side]["y"].append(y_val)
 
+        # --- Convert frames to seconds if requested ---
+        fps = 50.0  # placeholder sampling rate
+        use_seconds = xaxis_mode.get() == "Seconds"
+
+        if use_seconds:
+            for side in sides:
+                sides[side]["x"] = [x / fps for x in sides[side]["x"]]  # convert to seconds
+
+
         # Apply range slice
         for side in sides:
             if end_idx is not None and end_idx > 0:
@@ -1059,7 +1079,8 @@ def run_ui():
 
 
         if plotted:
-            ax.set_xlabel("Frame" if frame_col else "Sample Index")
+            ax.set_xlabel("Time (seconds)" if use_seconds else
+                            ("Frame" if frame_col else "Sample Index"))
             if selected_metric in ("Peak Pressure", "Avg Pressure"):
                 ylabel_unit = "kPa"
             elif selected_metric == "Contact %":

@@ -608,52 +608,6 @@ def run_ui():
     calc_container.pack(fill="both", expand=True, padx=20, pady=20)
 
     # =========================================================
-    # ================ Peak Calculation Button ================
-    # =========================================================
-
-    # Prints sensor peaks to console for debug purposes
-    def calculate_summary():
-        sensor_peaks = peak_pressure_per_sensor(data_storage)
-        # Print sensor_peaks to the console (and also update status briefly)
-        print("sensor_peaks:", sensor_peaks)
-        status_var.set("Printed sensor_peaks to console")
-
-    calculate_button = ttk.Button(calc_container, text="Calculate Peaks", command=calculate_summary)
-    # Pack button and add a small readout area for sensor peaks
-    def _show_peaks(peaks):
-        peaks_text.config(state="normal")
-        peaks_text.delete("1.0", "end")
-        if isinstance(peaks, dict):
-            for k in sorted(peaks):
-                peaks_text.insert("end", f"{k}: {peaks[k]}\n")
-        elif isinstance(peaks, (list, tuple)):
-            for i, v in enumerate(peaks):
-                peaks_text.insert("end", f"{i}: {v}\n")
-        else:
-            peaks_text.insert("end", repr(peaks) + "\n")
-        peaks_text.config(state="disabled")
-
-    def _run_and_show():
-        try:
-            calculate_summary()  # existing function (loads file and prints)
-            peaks = peak_pressure_per_sensor(data_storage)
-            _show_peaks(peaks)
-            status_var.set("Sensor peaks updated")
-        except Exception as e:
-            messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
-
-    calculate_button.configure(command=_run_and_show)
-    calculate_button.pack(fill="x", pady=(12, 0))
-
-    peaks_frame = ttk.LabelFrame(calc_container, text="Sensor Peaks", padding=(8, 6))
-    peaks_frame.pack(fill="both", pady=(8, 0))
-    peaks_text = tk.Text(peaks_frame, height=8, width=34, wrap="none", state="disabled")
-    peaks_text.pack(side="left", fill="both", expand=True)
-    peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
-    peaks_scroll.pack(side="right", fill="y")
-    peaks_text.configure(yscrollcommand=peaks_scroll.set)
-
-    # =========================================================
     # ====================== Calculations =====================
     # =========================================================
     tab_calc = ttk.Frame(nb)
@@ -1134,7 +1088,6 @@ def run_ui():
                 sides[side]["x"] = sides[side]["x"][start_idx:]
                 sides[side]["y"] = sides[side]["y"][start_idx:]
 
-        colors = {"Left": "#169873", "Right": "#f06292"}
         plotted = False
         if show_left_var.get():
             data = sides["Left"]

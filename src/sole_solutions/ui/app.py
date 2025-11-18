@@ -604,17 +604,8 @@ def run_ui():
     canvas.get_tk_widget().pack(fill="both", expand=True)
 
     # =========================================================
-    # =================== Calculations tab ====================
-    # =========================================================
-    
-    calc_container = tk.Frame(tab_calc, bg="#f2f2f2")
-    calc_container.pack(fill="both", expand=True, padx=20, pady=20)
-
-    # =========================================================
     # ====================== Calculations =====================
     # =========================================================
-    tab_calc = ttk.Frame(nb)
-    nb.add(tab_calc, text="Calculations")
 
     tab_calc.columnconfigure(0, weight=0)
     tab_calc.columnconfigure(1, weight=1)

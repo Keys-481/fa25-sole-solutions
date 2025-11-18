@@ -638,6 +638,8 @@ def run_ui():
     _row(ctrl, 6, "Smooth window (frames)", smooth_var)
     ttk.Button(ctrl, text="Recompute", command=lambda: refresh_calc()).grid(row=7, column=0, columnspan=2, pady=(8, 0))
 
+    # ===== Sensor Peak Calculation =====
+
     peak_matrix: Dict[tuple[int, int], Dict[str, float]] = {}
 
     # ---- Frame Range Selection ----
@@ -711,8 +713,8 @@ def run_ui():
         if not peak_matrix:
             matrix_text.insert("end", "No peak data stored yet.\n")
         else:
-            matrix_text.insert("end", "Frame Range → Sensor → Peak Pressure (kPa)\n")
-            matrix_text.insert("end", "=" * 50 + "\n\n")
+            matrix_text.insert("end", "Frame Range:\n Sensor: Peak Pressure (kPa)\n")
+            matrix_text.insert("end", "=" * 40 + "\n\n")
             for (start, end) in sorted(peak_matrix.keys()):
                 matrix_text.insert("end", f"Frames [{start}, {end}]:\n")
                 peaks = peak_matrix[(start, end)]
@@ -724,67 +726,6 @@ def run_ui():
                 matrix_text.insert("end", "\n")
         matrix_text.config(state="disabled")
         return peaks
-
-    # # ---- Sensor Peaks (moved here) ----
-    # def peak_pressure_per_sensor(rows: list[dict]) -> Dict[str, float]:
-    #     if not rows:
-    #         return {}
-    #     peaks: Dict[str, float] = {}
-    #     for r in rows[:5000]:
-    #         sensor = r.get("Sensor")
-    #         peak_str = r.get("Peak Pressure (kPa)")
-    #         if sensor is None or peak_str is None:
-    #             continue
-    #         peak_str = str(peak_str).strip()
-    #         if peak_str == "":
-    #             continue
-    #         try:
-    #             val = float(peak_str)
-    #         except (ValueError, TypeError):
-    #             continue
-    #         prev = peaks.get(sensor)
-    #         if prev is None or val > prev:
-    #             peaks[sensor] = val
-    #     return peaks
-
-    # def calculate_summary():
-    #     sensor_peaks = peak_pressure_per_sensor(data_storage)
-    #     print("sensor_peaks:", sensor_peaks)
-    #     status_var.set("Printed sensor_peaks to console")
-
-    # def _show_peaks(peaks):
-    #     peaks_text.config(state="normal")
-    #     peaks_text.delete("1.0", "end")
-    #     if isinstance(peaks, dict):
-    #         for k in sorted(peaks):
-    #             peaks_text.insert("end", f"{k}: {peaks[k]}\n")
-    #     elif isinstance(peaks, (list, tuple)):
-    #         for i, v in enumerate(peaks):
-    #             peaks_text.insert("end", f"{i}: {v}\n")
-    #     else:
-    #         peaks_text.insert("end", repr(peaks) + "\n")
-    #     peaks_text.config(state="disabled")
-
-    # def _run_and_show():
-    #     try:
-    #         calculate_summary()
-    #         peaks = peak_pressure_per_sensor(data_storage)
-    #         _show_peaks(peaks)
-    #         status_var.set("Sensor peaks updated")
-    #     except Exception as e:
-    #         messagebox.showwarning("Peaks Error", f"Failed to compute/display peaks: {e}")
-
-    # ttk.Button(calc_left, text="Calculate Peaks", command=_run_and_show).pack(pady=(10, 6), fill="x")
-
-    # peaks_frame = ttk.LabelFrame(calc_left, text="Sensor Peaks", padding=(8, 6))
-    # peaks_frame.pack(fill="both", expand=True, pady=(0, 8))
-    # peaks_frame.columnconfigure(0, weight=1)
-    # peaks_frame.rowconfigure(0, weight=1)
-    # peaks_text = tk.Text(peaks_frame, wrap="none", state="disabled", height=6, width=1)
-    # peaks_text.grid(row=0, column=0, sticky="nsew")
-    # peaks_scroll = ttk.Scrollbar(peaks_frame, orient="vertical", command=peaks_text.yview)
-    # peaks_scroll.grid(row=0, column=1, sticky="ns")
-    # peaks_text.configure(yscrollcommand=peaks_scroll.set)
 
     # ---- Key Results box ----
     res_box = ttk.LabelFrame(calc_left, text="Key Results", padding=10)

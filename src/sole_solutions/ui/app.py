@@ -213,6 +213,7 @@ def run_ui():
         def _on_export_click():
             choice.update(ok=True)
             win.destroy()
+        ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
         ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
@@ -483,7 +484,6 @@ def run_ui():
 
     def _only_int(P):
         return P == "" or P.isdigit()
-
     vcmd = (root.register(_only_int), "%P")
 
     tk.Label(info_frame, text="Height:", bg="#ffffff").grid(

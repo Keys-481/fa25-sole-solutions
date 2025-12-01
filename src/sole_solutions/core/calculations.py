@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Tuple, TypedDict, Optional
+from typing import Dict, List, Tuple, TypedDict, Optional, cast
 import math
 import statistics
 
@@ -337,10 +337,10 @@ def compute_segment_metrics(
 
 
    per_frame = compute_per_frame_bundle(seg_pressures, sensel_xy_cm, params)
-   vgrf = list(per_frame["vgrf_N"])            # type: ignore[index]
-   contact_area = list(per_frame["contact_area_cm2"])  # type: ignore[index]
-   avg_p = list(per_frame["avg_pressure_kPa"])         # type: ignore[index]
-   cop_xy = list(per_frame["cop_xy_cm"])               # type: ignore[index]
+   vgrf = cast(list[float], per_frame["vgrf_N"])               # type: ignore[index]
+   contact_area = cast(list[float], per_frame["contact_area_cm2"])  # type: ignore[index]
+   avg_p = cast(list[float], per_frame["avg_pressure_kPa"])         # type: ignore[index]
+   cop_xy = cast(list[tuple[float, float]], per_frame["cop_xy_cm"]) # type: ignore[index]
 
 
    n_frames = len(vgrf)

@@ -831,8 +831,6 @@ def run_ui():
     )
 
     fig, ax = plt.subplots(figsize=(8, 4))
-    left_line = None
-    right_line = None
     ax.set_facecolor("white")
     fig.patch.set_facecolor("#f2f2f2")
     canvas = FigureCanvasTkAgg(fig, master=viz_container)

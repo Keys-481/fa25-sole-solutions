@@ -831,6 +831,8 @@ def run_ui():
     )
 
     fig, ax = plt.subplots(figsize=(8, 4))
+    left_line = None
+    right_line = None
     ax.set_facecolor("white")
     fig.patch.set_facecolor("#f2f2f2")
     canvas = FigureCanvasTkAgg(fig, master=viz_container)
@@ -1618,14 +1620,14 @@ def run_ui():
             data = sides["Left"]
             if data["x"]:
                 ax.plot(
-                    data["x"], data["y"], label="Left Foot", linewidth=1.8, color=None
+                    data["x"], data["y"], label="Left Foot", linewidth=1.8, color="#1f77b4"
                 )
                 plotted = True
         if show_right_var.get():
             data = sides["Right"]
             if data["x"]:
                 ax.plot(
-                    data["x"], data["y"], label="Right Foot", linewidth=1.8, color=None
+                    data["x"], data["y"], label="Right Foot", linewidth=1.8, color="#ff7f0e"
                 )
                 plotted = True
 

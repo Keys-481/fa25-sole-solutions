@@ -567,13 +567,25 @@ def run_ui():
 
     xaxis_mode = tk.StringVar(value="Frames")  # default
     ttk.Label(xaxis_frame, text="X-Axis:", background="#f2f2f2").pack(side="left", padx=(4, 4))
-    ttk.Radiobutton(xaxis_frame, text="Frames", variable=xaxis_mode, value="Frames",
-                    command=lambda: update_plot()).pack(side="left", padx=(4, 4))
-    ttk.Radiobutton(xaxis_frame, text="Seconds", variable=xaxis_mode, value="Seconds",
-                    command=lambda: update_plot()).pack(side="left", padx=(4, 4))
 
+    ttk.Radiobutton(
+        xaxis_frame,
+        text="Frames",
+        variable=xaxis_mode,
+        value="Frames",
+        command=lambda: (update_range_label(), update_plot())
+    ).pack(side="left", padx=(4, 4))
 
-    tk.Label(range_frame, text="Frame Range:", bg="#f2f2f2").pack(side="left", padx=(4, 4))
+    ttk.Radiobutton(
+        xaxis_frame,
+        text="Seconds",
+        variable=xaxis_mode,
+        value="Seconds",
+        command=lambda: (update_range_label(), update_plot())
+    ).pack(side="left", padx=(4, 4))
+
+    range_label = tk.Label(range_frame, text="Frame Range:", bg="#f2f2f2")
+    range_label.pack(side="left", padx=(4, 4))
     frame_start_var = tk.StringVar(value="0")
     frame_end_var = tk.StringVar(value="")
 
@@ -582,6 +594,15 @@ def run_ui():
     ttk.Entry(range_frame, textvariable=frame_end_var, width=8).pack(side="left", padx=(0, 6))
 
     ttk.Button(range_frame, text="Apply", command=lambda: update_plot()).pack(side="left", padx=4)
+
+    # --- Sampling rate manual entry ---
+    sampling_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    sampling_frame.pack(fill="x", pady=(0, 10))
+
+    tk.Label(sampling_frame, text="Sampling Rate (Hz):", bg="#f2f2f2").pack(side="left", padx=(4, 6))
+    sampling_var = tk.StringVar(value="50.0")   # default fallback
+    sampling_entry = ttk.Entry(sampling_frame, textvariable=sampling_var, width=8)
+    sampling_entry.pack(side="left")
 
     # --- Visualization canvas below the controls ---
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -985,6 +1006,12 @@ def run_ui():
         page_label.config(text=f"Page {page_num} of {total_pages}")
 
     # ---------- Plot (Visualization tab — blank/optional for now) ----------
+    def update_range_label():
+        if xaxis_mode.get() == "Seconds":
+            range_label.config(text="Seconds Range:")
+        else:
+            range_label.config(text="Frame Range:")
+    
     def update_plot():
         """Plot Data Metrics (Left vs Right) across selected frame range."""
         rows = _all_rows_for_table()
@@ -1028,9 +1055,34 @@ def run_ui():
             canvas.draw()
             return
 
-        # --- Frame filtering ---
-        start_idx = int(frame_start_var.get()) if frame_start_var.get().isdigit() else 0
-        end_idx = int(frame_end_var.get()) if frame_end_var.get().isdigit() else None
+        # --- Interpret range depending on axis mode ---
+        use_seconds = xaxis_mode.get() == "Seconds"
+
+        # Get sampling rate safely
+        try:
+            fps = float(sampling_var.get())
+            if fps <= 0:
+                fps = 50.0
+        except:
+            fps = 50.0
+
+        if use_seconds:
+            # Convert seconds → frames
+            try:
+                sec_start = float(frame_start_var.get())
+                start_idx = int(sec_start * fps)
+            except:
+                start_idx = 0
+
+            try:
+                sec_end = float(frame_end_var.get())
+                end_idx = int(sec_end * fps)
+            except:
+                end_idx = None
+        else:
+            # Direct frame numbers
+            start_idx = int(frame_start_var.get()) if frame_start_var.get().isdigit() else 0
+            end_idx = int(frame_end_var.get()) if frame_end_var.get().isdigit() else None
 
         # Separate by insole side
         sides = {"Left": {"x": [], "y": []}, "Right": {"x": [], "y": []}}
@@ -1044,7 +1096,12 @@ def run_ui():
                 sides[side]["y"].append(y_val)
 
         # --- Convert frames to seconds if requested ---
-        fps = 50.0  # placeholder sampling rate
+        try:
+            fps = float(sampling_var.get())
+            if fps <= 0:
+                fps = 50.0
+        except:
+            fps = 50.0
         use_seconds = xaxis_mode.get() == "Seconds"
 
         if use_seconds:

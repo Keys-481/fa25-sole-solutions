@@ -234,7 +234,7 @@ def run_ui():
         }
 
     # live parameter variables (edited in popup)
-    fs_var = tk.DoubleVar(value=50.0)
+    fs_var = tk.DoubleVar(value=50.0) # Placeholder sampling
     area_var = tk.DoubleVar(value=0.25)
     thr_var = tk.DoubleVar(value=20.0)
     bw_thr_var = tk.DoubleVar(value=0.05)
@@ -774,6 +774,31 @@ def run_ui():
     metric_frame = tk.Frame(viz_container, bg="#f2f2f2")
     metric_frame.pack(fill="x", pady=(0, 10))
 
+    # --- X-Axis mode (Frames vs Seconds) ---
+    xaxis_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    xaxis_frame.pack(fill="x", pady=(0, 10))
+
+    xaxis_mode = tk.StringVar(value="Frames")
+
+    ttk.Label(xaxis_frame, text="X-Axis:", background="#f2f2f2").pack(
+        side="left", padx=(4, 4)
+    )
+    ttk.Radiobutton(
+        xaxis_frame,
+        text="Frames",
+        variable=xaxis_mode,
+        value="Frames",
+        command=lambda: update_plot(),
+    ).pack(side="left", padx=(4, 4))
+
+    ttk.Radiobutton(
+        xaxis_frame,
+        text="Seconds",
+        variable=xaxis_mode,
+        value="Seconds",
+        command=lambda: update_plot(),
+    ).pack(side="left", padx=(4, 4))
+
     tk.Label(metric_frame, text="Select Metric:", bg="#f2f2f2").pack(
         side="left", padx=(4, 4)
     )
@@ -827,6 +852,27 @@ def run_ui():
         side="left", padx=(0, 6)
     )
     ttk.Button(range_frame, text="Apply", command=lambda: update_plot()).pack(
+        side="left", padx=4
+    )
+
+    # --- Seconds Range (only used when X-axis = Seconds) ---
+    sec_range_frame = tk.Frame(viz_container, bg="#f2f2f2")
+    sec_range_frame.pack(fill="x", pady=(0, 10))
+
+    tk.Label(sec_range_frame, text="Seconds Range:", bg="#f2f2f2").pack(
+        side="left", padx=(4, 4)
+    )
+
+    sec_start_var = tk.StringVar(value="")
+    sec_end_var = tk.StringVar(value="")
+
+    ttk.Entry(sec_range_frame, textvariable=sec_start_var, width=8).pack(side="left")
+    tk.Label(sec_range_frame, text="to", bg="#f2f2f2").pack(side="left", padx=4)
+    ttk.Entry(sec_range_frame, textvariable=sec_end_var, width=8).pack(
+        side="left", padx=(0, 6)
+    )
+
+    ttk.Button(sec_range_frame, text="Apply", command=lambda: update_plot()).pack(
         side="left", padx=4
     )
 
@@ -1587,12 +1633,21 @@ def run_ui():
             canvas.draw()
             return
 
-        start_idx = (
-            int(frame_start_var.get()) if frame_start_var.get().isdigit() else 0
-        )
-        end_idx = (
-            int(frame_end_var.get()) if frame_end_var.get().isdigit() else None
-        )
+        if xaxis_mode.get() == "Seconds":
+            try:
+                fs = float(fs_var.get())
+                start_s = float(sec_start_var.get()) if sec_start_var.get() else 0.0
+                end_s_raw = sec_end_var.get()
+                end_s = float(end_s_raw) if end_s_raw else None
+
+                start_idx = int(start_s * fs)
+                end_idx = int(end_s * fs) if end_s is not None else None
+            except Exception:
+                start_idx, end_idx = 0, None
+        else:
+            # Frame mode
+            start_idx = int(frame_start_var.get()) if frame_start_var.get().isdigit() else 0
+            end_idx = int(frame_end_var.get()) if frame_end_var.get().isdigit() else None
 
         sides = {"Left": {"x": [], "y": []}, "Right": {"x": [], "y": []}}
         for r in rows:
@@ -1600,8 +1655,8 @@ def run_ui():
             y_val = _safe_float(r.get(y_col))
             f = _safe_float(r.get(frame_col)) if frame_col else None
             if side in sides and y_val is not None and math.isfinite(y_val):
-                xval = f if f is not None else len(sides[side]["x"])
-                sides[side]["x"].append(xval)
+                frame_idx = int(f) if f is not None and f >= 0 else len(sides[side]["x"])
+                sides[side]["x"].append(frame_idx)
                 sides[side]["y"].append(y_val)
 
         if end_idx is not None and end_idx > 0:
@@ -1612,6 +1667,19 @@ def run_ui():
             for side in sides:
                 sides[side]["x"] = sides[side]["x"][start_idx:]
                 sides[side]["y"] = sides[side]["y"][start_idx:]
+
+                # ---- Convert X-axis from frames → seconds if selected ----
+        if xaxis_mode.get() == "Seconds":
+            try:
+                fs = float(fs_var.get())
+                if fs > 0:
+                    for side in sides:
+                        sides[side]["x"] = [x / fs for x in sides[side]["x"]]
+                ax.set_xlabel("Time (s)")
+            except Exception:
+                ax.set_xlabel("Time (s)")
+        else:
+            ax.set_xlabel("Frame" if frame_col else "Sample Index")
 
         plotted = False
         if show_left_var.get():
@@ -1630,7 +1698,6 @@ def run_ui():
                 plotted = True
 
         if plotted:
-            ax.set_xlabel("Frame" if frame_col else "Sample Index")
             if selected_metric in ("Peak Pressure", "Avg Pressure"):
                 ylabel_unit = "kPa"
             elif selected_metric == "Contact %":

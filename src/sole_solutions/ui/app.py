@@ -234,7 +234,7 @@ def run_ui():
         }
 
     # live parameter variables (edited in popup)
-    fs_var = tk.DoubleVar(value=50.0) # Placeholder sampling
+    fs_var = tk.DoubleVar(value=50.0) # Placeholder sampling rate
     area_var = tk.DoubleVar(value=0.25)
     thr_var = tk.DoubleVar(value=20.0)
     bw_thr_var = tk.DoubleVar(value=0.05)

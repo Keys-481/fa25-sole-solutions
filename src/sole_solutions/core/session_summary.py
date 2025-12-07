@@ -3,33 +3,33 @@ from dataclasses import dataclass
 from typing import Dict, List, Sequence, Optional
 import math
 import re
+import statistics
 
 
 @dataclass
 class SessionSummary:
     frames: int
     sensors: int
-    avg_pressure_per_frame: List[float]
-    estimated_vgrf_per_frame: List[float]  # sum of sensor values per frame
-    global_min: float
-    global_max: float
+    avg_pressure_per_frame: List[float]        # kPa
+    estimated_vgrf_per_frame: List[float]      # Newtons (sum over sensors, raw → approx GRF)
+    global_min: float                          # kPa
+    global_max: float                          # kPa
     contact_time_frames: int
-    contact_threshold: float
-    pti: float  # pressure–time integral using avg_pressure * dt
-    dt: float
+    contact_threshold: float                   # kPa
+    pti: float                                 # kPa·s
+    dt: float                                  # seconds/frame
 
 
-def _safe_float(x) -> Optional[float]:
+def _safe_float(x: object) -> Optional[float]:
+    """Return float(x) if valid and finite, else None."""
     try:
-        v = float(x)
-        if not math.isfinite(v):
-            return None
-        return v
+        v = float(x)  # type: ignore[arg-type]
+        return v if math.isfinite(v) else None
     except Exception:
         return None
 
 
-# columns to avoid when inferring sensors
+# Columns to ignore when identifying raw sensel columns
 KNOWN_META = {
     "frame",
     "subject",
@@ -46,17 +46,25 @@ KNOWN_META = {
     "threshold",
 }
 
+# Pattern for "sensor12", "s12", "12", etc.
 SENSOR_NAME_PAT = re.compile(r"^(sensor(_|\s)?\d+|s\d+|\d+)$", re.IGNORECASE)
 
 
 def infer_sensor_keys(
     data_storage: List[Dict[str, object]],
     min_numeric_ratio: float = 0.9,
-    sample_rows: int = 200,
+    sample_rows: int = 200
 ) -> List[str]:
-    """Infer which columns are sensels/sensors."""
+    """
+    Infer which columns correspond to individual sensels/sensors.
+
+    We use two strategies:
+    1. Column name looks like 'sensor12', 's5', or '12'.
+    2. Fallback: numeric content ratio >= min_numeric_ratio.
+    """
     if not data_storage:
         return []
+
     cols = list(data_storage[0].keys())
     n = min(len(data_storage), sample_rows)
 
@@ -69,14 +77,14 @@ def infer_sensor_keys(
 
     candidates: List[str] = []
 
-    # try by name first
+    # Pass 1: name-based inference
     for c in cols:
         if is_meta(c):
             continue
         if SENSOR_NAME_PAT.match(c.replace(" ", "_")):
             candidates.append(c)
 
-    # fallback: numeric columns test
+    # Pass 2: numeric content test
     if not candidates:
         for c in cols:
             if is_meta(c):
@@ -84,16 +92,16 @@ def infer_sensor_keys(
             numeric_hits = 0
             checks = 0
             for i in range(n):
-                v = data_storage[i].get(c, None)
-                if v is None or v == "":
+                raw = data_storage[i].get(c)
+                if raw is None or raw == "":
                     continue
                 checks += 1
-                if _safe_float(v) is not None:
+                if _safe_float(raw) is not None:
                     numeric_hits += 1
             if checks > 0 and numeric_hits / checks >= min_numeric_ratio:
                 candidates.append(c)
 
-    # keep stable ordering as they appear in the file
+    # Preserve file order
     ordered = [c for c in cols if c in set(candidates)]
     return ordered
 
@@ -104,7 +112,14 @@ def compute_session_summary(
     contact_threshold: float = 20.0,
     dt: float = 1.0,
 ) -> SessionSummary:
-    """Lightweight summary independent of the main calc module."""
+    """
+    Lightweight dataset-wide summary for the Session Summary tab.
+
+    NOTE:
+    - estimated_vgrf_per_frame is **raw sum of sensor pressures**, not the
+      biomechanical vGRF (which the Calculations tab computes properly).
+    - PTI is computed from avg pressure over time.
+    """
     if not data_storage or not sensor_keys:
         return SessionSummary(
             frames=0,
@@ -131,20 +146,21 @@ def compute_session_summary(
 
     for row in data_storage:
         vals: List[float] = []
+
         for k in sensor_keys:
             v = _safe_float(row.get(k))
             if v is not None:
                 vals.append(v)
 
         if vals:
-            fsum = sum(vals)
-            favg = fsum / len(vals)
+            fsum = sum(vals)              # raw sum of pressures (kPa-ish)
+            favg = fsum / len(vals)       # avg pressure across all sensors
         else:
             fsum = 0.0
             favg = 0.0
 
         avg_pf.append(favg)
-        vgrf_pf.append(fsum)
+        vgrf_pf.append(fsum)              # NOT biomechanical vGRF; used only for summary preview
         pti_accum += favg * dt
 
         if any(v >= contact_threshold for v in vals):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sole_solutions.core.export_manager import (
     export_summary_docx,
     export_summary_pdf,
@@ -18,9 +20,10 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import re
 import statistics
+from typing import Dict
+
 from sole_solutions.ui.session_summary_panel import SessionSummaryPanel
 from sole_solutions.ui.about_window import AboutWindow
-from typing import Dict
 from sole_solutions.core.calculations import (
     CalcParams,
     extract_per_frame_pressures,
@@ -213,7 +216,6 @@ def run_ui():
         def _on_export_click():
             choice.update(ok=True)
             win.destroy()
-        ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
         ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
@@ -467,13 +469,13 @@ def run_ui():
     import_hint.bind("<Button-1>", import_click)
 
     if DND_AVAILABLE and DND_FILES:
-        import_container.drop_target_register(DND_FILES)
 
         def drop_handler(event):
             files = root.splitlist(event.data)
             if files:
                 import_csv(files[0])
 
+        import_container.drop_target_register(DND_FILES)
         import_container.dnd_bind("<<Drop>>", drop_handler)
 
     # 2) Collapsible: Participant Info
@@ -484,17 +486,14 @@ def run_ui():
 
     def _only_int(P):
         return P == "" or P.isdigit()
+
     vcmd = (root.register(_only_int), "%P")
 
     tk.Label(info_frame, text="Height:", bg="#ffffff").grid(
         row=0, column=0, sticky="w", pady=(2, 2)
     )
-    tk.Label(info_frame, text="ft", bg="#ffffff").grid(
-        row=0, column=2, sticky="w"
-    )
-    tk.Label(info_frame, text="in", bg="#ffffff").grid(
-        row=0, column=4, sticky="w"
-    )
+    tk.Label(info_frame, text="ft", bg="#ffffff").grid(row=0, column=2, sticky="w")
+    tk.Label(info_frame, text="in", bg="#ffffff").grid(row=0, column=4, sticky="w")
     height_ft_var = tk.StringVar(value=str(metadata["height_ft"]))
     height_in_var = tk.StringVar(value=str(metadata["height_in"]))
     height_ft_entry = ttk.Entry(
@@ -517,9 +516,7 @@ def run_ui():
     tk.Label(info_frame, text="Weight:", bg="#ffffff").grid(
         row=1, column=0, sticky="w", pady=(6, 2)
     )
-    tk.Label(info_frame, text="lb", bg="#ffffff").grid(
-        row=1, column=2, sticky="w"
-    )
+    tk.Label(info_frame, text="lb", bg="#ffffff").grid(row=1, column=2, sticky="w")
     weight_lb_var = tk.StringVar(value=str(metadata["weight_lb"]))
     weight_lb_entry = ttk.Entry(
         info_frame,
@@ -582,7 +579,7 @@ def run_ui():
         row=3, column=0, sticky="w", pady=(6, 0)
     )
     dominance_combo = ttk.Combobox(
-        info_frame, values=["Left", "Right", "Both"], state="readonly", width=16
+        info_frame, values=["Left", "Right", Both := "Both"], state="readonly", width=16
     )
     dominance_combo.grid(row=3, column=1, sticky="w", pady=(6, 0))
     dominance_combo.current(0)
@@ -603,25 +600,9 @@ def run_ui():
     column_combo.grid(row=0, column=1, sticky="ew", padx=(6, 0))
     column_combo.set("All")
 
-    # 4) Collapsible: Filters
-    filter_section = Collapsible(left_col, "Filters", initially_open=True)
-    filter_section.grid(row=3, column=0, sticky="ew", pady=6)
-    filter_frame = tk.Frame(filter_section.body, bg="#ffffff")
-    filter_frame.pack(fill="x", padx=10, pady=10)
-    tk.Label(filter_frame, text="Select Subject:", bg="#ffffff").grid(
-        row=0, column=0, sticky="w"
-    )
-    subject_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
-    subject_combo.grid(row=0, column=1, sticky="ew")
-    tk.Label(filter_frame, text="Select Trial:", bg="#ffffff").grid(
-        row=1, column=0, sticky="w"
-    )
-    trial_combo = ttk.Combobox(filter_frame, values=[], state="readonly")
-    trial_combo.grid(row=1, column=1, sticky="ew")
-
-    # 5) Insole Zones (always shown)
+    # 4) Insole Zones (always shown) — metadata / grouping only
     zones_holder = ttk.LabelFrame(left_col, text="Insole Zones (3×2)")
-    zones_holder.grid(row=4, column=0, sticky="ew", pady=6)
+    zones_holder.grid(row=3, column=0, sticky="ew", pady=6)
     zones_frame = tk.Frame(zones_holder, bg="#ffffff")
     zones_frame.pack(fill="x", padx=10, pady=10)
 
@@ -724,16 +705,22 @@ def run_ui():
         metadata["zones"] = selected_zones
         draw_zone_grid()
         sel_var.set(
-            "Selected: "
+            "Selected zones: "
             + (", ".join(sorted(selected_zones)) if selected_zones else "None")
         )
         _update_status_peek()
 
     zone_canvas.bind("<Button-1>", toggle_zone)
-    sel_var = tk.StringVar(value="Selected: None")
+    sel_var = tk.StringVar(value="Selected zones: None")
     ttk.Label(zones_frame, textvariable=sel_var, style="Hint.TLabel").pack(
         anchor="w", padx=4, pady=(4, 0)
     )
+
+    ttk.Label(
+        zones_frame,
+        text="(Currently used as metadata only)",
+        style="Hint.TLabel",
+    ).pack(anchor="w", padx=4, pady=(2, 0))
 
     # ---- Right column (table) ----
     right_frame = tk.Frame(tab_table, bg="#f2f2f2")
@@ -975,9 +962,7 @@ def run_ui():
         fig_calc.patch.set_facecolor("#f2f2f2")
 
         if not data_storage:
-            ax_calc.text(
-                0.5, 0.5, "No data loaded", ha="center", va="center"
-            )
+            ax_calc.text(0.5, 0.5, "No data loaded", ha="center", va="center")
             canvas_calc.draw()
             return
 
@@ -1024,9 +1009,9 @@ def run_ui():
         ax_calc.legend()
         fig_calc.tight_layout()
 
-        # Update header with global calc summary
+        # Update header with global calc summary (stance stats + impulse of force)
         status_var.set(
-            "Impulse: {:.2f} N·s | Max load rate: {:.0f} N/s | "
+            "Impulse (force): {:.2f} N·s | Max load rate: {:.0f} N/s | "
             "Mean stance time: {:.3f} s | Cadence: {:.1f} spm".format(
                 impulse,
                 rates["max_dFdt_Ns"],
@@ -1160,7 +1145,7 @@ def run_ui():
                     val = seg.get(key, None)
                     if isinstance(val, (int, float)):
                         metrics_text.insert(
-                            "end", f"{label:<22}: " + fmt.format(val) + "\n"
+                            "end", f"{label:<28}: " + fmt.format(val) + "\n"
                         )
 
                 metrics_text.insert(
@@ -1176,7 +1161,7 @@ def run_ui():
                 line("Max contact area (cm²)", "max_contact_area_cm2", "{:.1f}")
                 metrics_text.insert("end", "\n")
                 line("Peak vGRF (N)", "peak_vgrf_N", "{:.1f}")
-                line("Impulse (N·s)", "impulse_Ns", "{:.2f}")
+                line("Impulse (force, N·s)", "impulse_Ns", "{:.2f}")
                 line("Max load rate (N/s)", "load_rate_max_Ns", "{:.0f}")
                 line("Avg load rate to 80% (N/s)", "load_rate_avg80_Ns", "{:.0f}")
                 metrics_text.insert("end", "\n")
@@ -1309,9 +1294,7 @@ def run_ui():
         ttk.Button(btn_row, text="Delete selected", command=delete_segment).pack(
             side="left", padx=(6, 0)
         )
-        ttk.Button(btn_row, text="Close", command=win.destroy).pack(
-            side="right"
-        )
+        ttk.Button(btn_row, text="Close", command=win.destroy).pack(side="right")
 
         refresh_segment_list()
         if saved_segments and not last_seg_holder["value"]:
@@ -1319,7 +1302,6 @@ def run_ui():
             segments_list.selection_set(0)
         else:
             compute_segment()
-
 
     # Buttons after function definitions
     manage_btn = ttk.Button(
@@ -1369,11 +1351,13 @@ def run_ui():
             messagebox.showerror("Error", "Cannot read CSV (unknown encoding).")
             return
 
-        # Detect header start
+        # Detect header start (supports metadata rows above)
         start_index = 0
         for i, line in enumerate(lines):
             s = line.strip()
-            if s.startswith("Frame") or s.startswith("Subject"):
+            if not s or s.startswith("#"):
+                continue
+            if s.startswith("Frame") or s.startswith("Subject") or s.startswith("Time"):
                 start_index = i
                 break
 
@@ -1475,7 +1459,8 @@ def run_ui():
             column_combo.set("All")
             return
         cols = list(data_storage[0].keys())
-        main_cols = cols[:-341] if len(cols) > 341 else cols
+        # keep "sensor" columns available if needed, but trim if huge:
+        main_cols = cols
         display_columns.extend(main_cols)
         column_combo["values"] = ["All"] + display_columns
         if not column_combo.get():
@@ -1631,7 +1616,7 @@ def run_ui():
 
         if plotted:
             ax.set_xlabel("Frame" if frame_col else "Sample Index")
-            if selected_metric in ("Peak Pressure", "Avg Pressure"):
+            if selected_metric in ("Peak Pressure", "Avg Pressure", "Minimum Pressure"):
                 ylabel_unit = "kPa"
             elif selected_metric == "Contact %":
                 ylabel_unit = "%"
@@ -1689,11 +1674,6 @@ def run_ui():
         """
         Collapse from the top down as height shrinks.
         """
-        if h_now < 720:
-            filter_section.set_open(False)
-        else:
-            filter_section.set_open(True)
-
         if h_now < 690:
             colopts_section.set_open(False)
         else:

@@ -579,8 +579,9 @@ def run_ui():
         row=3, column=0, sticky="w", pady=(6, 0)
     )
     dominance_combo = ttk.Combobox(
-        info_frame, values=["Left", "Right", Both := "Both"], state="readonly", width=16
+        info_frame, values=["Left", "Right", "Both"], state="readonly", width=16
     )
+
     dominance_combo.grid(row=3, column=1, sticky="w", pady=(6, 0))
     dominance_combo.current(0)
     dominance_combo.bind(

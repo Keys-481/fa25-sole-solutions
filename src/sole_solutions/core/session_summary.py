@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Sequence, Optional
 import math
 import re
-import statistics
-
 
 @dataclass
 class SessionSummary:

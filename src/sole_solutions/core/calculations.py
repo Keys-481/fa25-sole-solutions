@@ -21,55 +21,23 @@ class SegmentMetrics(TypedDict, total=False):
    n_frames: int
    duration_s: float
 
-
    peak_pressure_kpa: float
    mean_pressure_kpa: float
    pti_kpa_s: float
 
-
    mean_contact_area_cm2: float
    max_contact_area_cm2: float
-
 
    peak_vgrf_N: float
    impulse_Ns: float
    load_rate_max_Ns: float
    load_rate_avg80_Ns: float
 
-
    stance_time_s: float
    step_time_s: float
    cadence_spm: float
 
-
    cop_path_len_cm: float
-
-
-class SegmentMetrics(TypedDict, total=False):
-    """Per-segment summary for an arbitrary frame range."""
-    name: str
-    start_frame: int
-    end_frame: int
-    n_frames: int
-    duration_s: float
-
-    peak_pressure_kpa: float
-    mean_pressure_kpa: float
-    pti_kpa_s: float
-
-    mean_contact_area_cm2: float
-    max_contact_area_cm2: float
-
-    peak_vgrf_N: float
-    impulse_Ns: float
-    load_rate_max_Ns: float
-    load_rate_avg80_Ns: float
-
-    stance_time_s: float
-    step_time_s: float
-    cadence_spm: float
-
-    cop_path_len_cm: float
 
 
 def _movavg(xs: List[float], w: int) -> List[float]:

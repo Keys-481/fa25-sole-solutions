@@ -219,8 +219,6 @@ def run_ui():
 
         ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
-        ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
-
         win.update_idletasks()
         x = root.winfo_rootx() + (root.winfo_width() - win.winfo_width()) // 2
         y = root.winfo_rooty() + (root.winfo_height() - win.winfo_height()) // 2
@@ -784,6 +782,22 @@ def run_ui():
     )
     metric_combo.pack(side="left", padx=(4, 6))
     metric_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
+
+    # X-axis mode (Frames vs Seconds)
+    xaxis_mode = tk.StringVar(value="Frames")
+    tk.Label(metric_frame, text="X axis:", bg="#f2f2f2").pack(
+        side="left", padx=(10, 4)
+    )
+    xaxis_combo = ttk.Combobox(
+        metric_frame,
+        textvariable=xaxis_mode,
+        state="readonly",
+        values=["Frames", "Seconds"],
+        width=9,
+    )
+    xaxis_combo.pack(side="left")
+    xaxis_combo.current(0)
+    xaxis_combo.bind("<<ComboboxSelected>>", lambda *_: update_plot())
 
     foot_toggle_frame = tk.Frame(viz_container, bg="#f2f2f2")
     foot_toggle_frame.pack(fill="x", pady=(0, 10))
@@ -1603,7 +1617,7 @@ def run_ui():
                 sides[side]["x"] = sides[side]["x"][start_idx:]
                 sides[side]["y"] = sides[side]["y"][start_idx:]
 
-                # ---- Convert X-axis from frames → seconds if selected ----
+        # ---- Convert X-axis from frames → seconds if selected ----
         if xaxis_mode.get() == "Seconds":
             try:
                 fs = float(fs_var.get())
@@ -1633,7 +1647,6 @@ def run_ui():
                 plotted = True
 
         if plotted:
-            ax.set_xlabel("Frame" if frame_col else "Sample Index")
             if selected_metric in ("Peak Pressure", "Avg Pressure", "Minimum Pressure"):
                 ylabel_unit = "kPa"
             elif selected_metric == "Contact %":

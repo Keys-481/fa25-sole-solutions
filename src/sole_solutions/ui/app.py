@@ -219,6 +219,8 @@ def run_ui():
 
         ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
 
+        ttk.Button(btns, text="Export", command=_on_export_click).pack(side="right")
+
         win.update_idletasks()
         x = root.winfo_rootx() + (root.winfo_width() - win.winfo_width()) // 2
         y = root.winfo_rooty() + (root.winfo_height() - win.winfo_height()) // 2
@@ -963,7 +965,9 @@ def run_ui():
         fig_calc.patch.set_facecolor("#f2f2f2")
 
         if not data_storage:
-            ax_calc.text(0.5, 0.5, "No data loaded", ha="center", va="center")
+            ax_calc.text(
+                0.5, 0.5, "No data loaded", ha="center", va="center"
+            )
             canvas_calc.draw()
             return
 
@@ -1586,8 +1590,8 @@ def run_ui():
             y_val = _safe_float(r.get(y_col))
             f = _safe_float(r.get(frame_col)) if frame_col else None
             if side in sides and y_val is not None and math.isfinite(y_val):
-                xval = f if f is not None else len(sides[side]["x"])
-                sides[side]["x"].append(xval)
+                frame_idx = int(f) if f is not None and f >= 0 else len(sides[side]["x"])
+                sides[side]["x"].append(frame_idx)
                 sides[side]["y"].append(y_val)
 
         if end_idx is not None and end_idx > 0:
@@ -1598,6 +1602,19 @@ def run_ui():
             for side in sides:
                 sides[side]["x"] = sides[side]["x"][start_idx:]
                 sides[side]["y"] = sides[side]["y"][start_idx:]
+
+                # ---- Convert X-axis from frames → seconds if selected ----
+        if xaxis_mode.get() == "Seconds":
+            try:
+                fs = float(fs_var.get())
+                if fs > 0:
+                    for side in sides:
+                        sides[side]["x"] = [x / fs for x in sides[side]["x"]]
+                ax.set_xlabel("Time (s)")
+            except Exception:
+                ax.set_xlabel("Time (s)")
+        else:
+            ax.set_xlabel("Frame" if frame_col else "Sample Index")
 
         plotted = False
         if show_left_var.get():

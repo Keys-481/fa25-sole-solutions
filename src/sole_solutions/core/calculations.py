@@ -5,13 +5,44 @@ import statistics
 
 # ---- Types ----
 class CalcParams(TypedDict):
-    fs: float                # Hz (sampling frequency)
-    sensel_area_cm2: float   # area of one sensel in cm^2
-    contact_kpa: float       # threshold for contact in kPa
-    stance_bw_frac: float    # e.g., 0.05 (5% bodyweight)
-    body_mass_kg: float
-    calibration_scale: float # scale vGRF to match BW if desired
-    smooth_win: int          # moving average window (frames)
+   fs: float                # Hz (sampling frequency)
+   sensel_area_cm2: float   # area of one sensel in cm^2
+   contact_kpa: float       # threshold for contact in kPa
+   stance_bw_frac: float    # e.g., 0.05 (5% bodyweight)
+   body_mass_kg: float
+   calibration_scale: float # scale vGRF to match BW if desired
+   smooth_win: int          # moving average window (frames)
+
+class SegmentMetrics(TypedDict, total=False):
+   """Per-segment summary for an arbitrary frame range."""
+   name: str
+   start_frame: int
+   end_frame: int
+   n_frames: int
+   duration_s: float
+
+
+   peak_pressure_kpa: float
+   mean_pressure_kpa: float
+   pti_kpa_s: float
+
+
+   mean_contact_area_cm2: float
+   max_contact_area_cm2: float
+
+
+   peak_vgrf_N: float
+   impulse_Ns: float
+   load_rate_max_Ns: float
+   load_rate_avg80_Ns: float
+
+
+   stance_time_s: float
+   step_time_s: float
+   cadence_spm: float
+
+
+   cop_path_len_cm: float
 
 
 class SegmentMetrics(TypedDict, total=False):
@@ -57,18 +88,18 @@ def _movavg(xs: List[float], w: int) -> List[float]:
 
 
 def _safe_float(x) -> Optional[float]:
-    try:
-        v = float(x)
-        if math.isfinite(v):
-            return v
-    except Exception:
-        pass
-    return None
+   try:
+       v = float(x)
+       if math.isfinite(v):
+           return v
+   except Exception:
+       pass
+   return None
 
 
 def extract_per_frame_pressures(
-    rows: List[dict],
-    sensor_keys: List[str],
+   rows: List[dict],
+   sensor_keys: List[str],
 ) -> List[List[float]]:
     """
     Returns pressures_kpa[frame][sensor_idx].
@@ -90,13 +121,13 @@ def compute_contact_area_series(
     pressures_kpa: List[List[float]],
     params: CalcParams,
 ) -> List[float]:
-    area = params["sensel_area_cm2"]
-    thr = params["contact_kpa"]
-    out: List[float] = []
-    for frame in pressures_kpa:
-        n_contact = sum(1 for p in frame if p >= thr)
-        out.append(n_contact * area)
-    return out
+   area = params["sensel_area_cm2"]
+   thr = params["contact_kpa"]
+   out: List[float] = []
+   for frame in pressures_kpa:
+       n_contact = sum(1 for p in frame if p >= thr)
+       out.append(n_contact * area)
+   return out
 
 
 def compute_avg_pressure_series(
@@ -115,32 +146,32 @@ def compute_vgrf_series(
     pressures_kpa: List[List[float]],
     params: CalcParams,
 ) -> List[float]:
-    """
-    vGRF per frame:
-      1 kPa = 0.1 N/cm^2
-      vGRF = sum_i (kPa_i * 0.1 * sensel_area_cm2) * calibration_scale
-    """
-    kpa_to_N_per_cm2 = 0.1
-    a = params["sensel_area_cm2"]
-    s = params["calibration_scale"]
-    out: List[float] = []
-    for frame in pressures_kpa:
-        F = (sum(frame) * kpa_to_N_per_cm2 * a) * s
-        out.append(F)
-    return out
+   """
+   vGRF per frame:
+     1 kPa = 0.1 N/cm^2
+     vGRF = sum_i (kPa_i * 0.1 * sensel_area_cm2) * calibration_scale
+   """
+   kpa_to_N_per_cm2 = 0.1
+   a = params["sensel_area_cm2"]
+   s = params["calibration_scale"]
+   out: List[float] = []
+   for frame in pressures_kpa:
+       F = (sum(frame) * kpa_to_N_per_cm2 * a) * s
+       out.append(F)
+   return out
 
 
 def compute_pti_kpas(
     pressures_kpa: List[List[float]],
     params: CalcParams,
 ) -> float:
-    """Pressure–Time Integral over the whole stance (kPa·s)."""
-    if not pressures_kpa:
-        return 0.0
-    dt = 1.0 / max(1e-9, params["fs"])
-    # Sum of average contact pressure per frame * dt
-    avg = compute_avg_pressure_series(pressures_kpa, params)
-    return sum(avg) * dt
+   """Pressure–Time Integral over the whole stance (kPa·s)."""
+   if not pressures_kpa:
+       return 0.0
+   dt = 1.0 / max(1e-9, params["fs"])
+   # Sum of average contact pressure per frame * dt
+   avg = compute_avg_pressure_series(pressures_kpa, params)
+   return sum(avg) * dt
 
 
 def compute_cop_path(
@@ -230,8 +261,8 @@ def temporal_spatial_from_spans(
 
 
 def compute_impulse_Ns(vgrf_N: List[float], params: CalcParams) -> float:
-    dt = 1.0 / max(1e-9, params["fs"])
-    return sum(vgrf_N) * dt
+   dt = 1.0 / max(1e-9, params["fs"])
+   return sum(vgrf_N) * dt
 
 
 def compute_load_rate(vgrf_N: List[float], params: CalcParams) -> Dict[str, float]:
@@ -257,9 +288,9 @@ def compute_load_rate(vgrf_N: List[float], params: CalcParams) -> Dict[str, floa
 
 
 def symmetry_index(a: float, b: float) -> float:
-    """SI% = 100 * (R - L) / (0.5*(R + L)); caller passes (L, R) or vice-versa."""
-    denom = 0.5 * (a + b)
-    return 0.0 if denom == 0 else 100.0 * (b - a) / denom
+   """SI% = 100 * (R - L) / (0.5*(R + L)); caller passes (L, R) or vice-versa."""
+   denom = 0.5 * (a + b)
+   return 0.0 if denom == 0 else 100.0 * (b - a) / denom
 
 
 def compute_per_frame_bundle(

@@ -3,29 +3,33 @@ from typing import Dict, List, Optional
 import csv
 
 
+
+
 def export_per_frame_csv(
-    path: str,
-    avg_pressure_per_frame: List[float],
-    estimated_vgrf_per_frame: List[float],
+   path: str,
+   avg_pressure_per_frame: List[float],
+   estimated_vgrf_per_frame: List[float],
 ) -> Optional[str]:
-    try:
-        with open(path, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["frame", "avg_pressure", "estimated_vGRF"])
-            n = max(len(avg_pressure_per_frame), len(estimated_vgrf_per_frame))
-            for i in range(n):
-                ap = avg_pressure_per_frame[i] if i < len(avg_pressure_per_frame) else ""
-                vg = estimated_vgrf_per_frame[i] if i < len(estimated_vgrf_per_frame) else ""
-                w.writerow(
-                    [
-                        i,
-                        f"{ap:.6f}" if ap != "" else "",
-                        f"{vg:.6f}" if vg != "" else "",
-                    ]
-                )
-        return None
-    except Exception as e:
-        return f"Failed to write per-frame CSV: {e}"
+   try:
+       with open(path, "w", newline="", encoding="utf-8") as f:
+           w = csv.writer(f)
+           w.writerow(["frame", "avg_pressure", "estimated_vGRF"])
+           n = max(len(avg_pressure_per_frame), len(estimated_vgrf_per_frame))
+           for i in range(n):
+               ap = avg_pressure_per_frame[i] if i < len(avg_pressure_per_frame) else ""
+               vg = estimated_vgrf_per_frame[i] if i < len(estimated_vgrf_per_frame) else ""
+               w.writerow(
+                   [
+                       i,
+                       f"{ap:.6f}" if ap != "" else "",
+                       f"{vg:.6f}" if vg != "" else "",
+                   ]
+               )
+       return None
+   except Exception as e:
+       return f"Failed to write per-frame CSV: {e}"
+
+
 
 
 def export_summary_docx(summary: Dict, path: str) -> Optional[str]:
